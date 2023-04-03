@@ -15,12 +15,14 @@ if __name__ == '__main__':
     opt.serial_batches = True
     opt.no_flip = True
     opt.display_id = -1
-
+    
     dataset = create_dataset(opt)
     model = create_model(opt)
     model.setup(opt)
-    web_dir = os.path.join(opt.results_dir, opt.name,'%s_%s' % (opt.phase, opt.epoch))
-    webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.epoch))
+    web_dir = os.path.join(opt.results_dir, opt.name,
+                           f'{opt.phase}_{opt.epoch}')
+    webpage = html.HTML(web_dir,
+                        f'Experiment = {opt.name}, Phase = {opt.phase}, Epoch = {opt.epoch}')
     scores = []
     if opt.eval:
         model.eval()
@@ -32,6 +34,8 @@ if __name__ == '__main__':
         metrics = model.compute_scores()
         scores.extend(metrics)
         print('processing (%04d)-th image... %s' % (i, img_path))
-        save_images(webpage, visuals, img_path,aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
+        save_images(webpage, visuals, img_path,
+                    aspect_ratio=opt.aspect_ratio,
+                    width=opt.display_winsize)
     webpage.save()
     print('Histogram Intersection: %.4f' % np.mean(scores))

@@ -1,4 +1,5 @@
 import os.path
+import random
 from data.base_dataset import BaseDataset, get_transform
 from skimage import color  # require skimage
 from PIL import Image
@@ -35,8 +36,27 @@ class ColorizationDataset(BaseDataset):
             opt (Option class) -- stores all the experiment flags; needs to be a subclass of BaseOptions
         """
         BaseDataset.__init__(self, opt)
-        self.dir = os.path.join(opt.dataroot, opt.phase)
-        self.AB_paths = [[self.opt.targetImage_path, self.opt.referenceImage_path]]
+        # self.dir = os.path.join(opt.dataroot, opt.phase)
+        # all_paths = []
+        # for filepath, _, filenames in os.walk(self.dir):
+        #     for filename in filenames:
+        #         all_paths.append(os.path.join(filepath, filename))
+
+        # self.AB_paths = []
+        # for _ in range(10):
+        #     self.AB_paths.append([random.choice(all_paths), random.choice(all_paths)])
+        if opt.isTrain:
+            self.dir = os.path.join(opt.dataroot, opt.phase)
+            all_paths = []
+            for filepath, _, filenames in os.walk(self.dir):
+                for filename in filenames:
+                    all_paths.append(os.path.join(filepath, filename))
+
+            self.AB_paths = []
+            for _ in range(10 ** 6):
+                self.AB_paths.append([random.choice(all_paths), random.choice(all_paths)])
+        else:
+            self.AB_paths = [[self.opt.targetImage_path, self.opt.referenceImage_path]]
         self.ab_constant = np.load('./doc/ab_constant_filter.npy')
         self.transform_A = get_transform(self.opt, convert=False)
         self.transform_R = get_transform(self.opt, convert=False, must_crop=True)
