@@ -24,15 +24,10 @@ class nn_bn_relu(nn.Module):
 class AFD(nn.Module):
     def __init__(self, args):
         super(AFD, self).__init__()
-        self.guide_layers = args.guide_layers
-        self.hint_layers = args.hint_layers
         self.attention = Attention(args)
 
     def forward(self, g_s, g_t):
-        g_t = [g_t[i] for i in self.guide_layers]
-        g_s = [g_s[i] for i in self.hint_layers]
-        loss = self.attention(g_s, g_t)
-        return sum(loss)
+        return sum(self.attention(g_s, g_t))
 
 
 class Attention(nn.Module):
