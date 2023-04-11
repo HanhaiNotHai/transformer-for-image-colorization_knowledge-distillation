@@ -1,0 +1,1 @@
+python3 -u train_student.py --gpu_id 0 --preprocess scale_width_and_crop
