@@ -43,3 +43,5 @@ class MainModel(BaseModel):
         self.fake_R_histogram = []
         for i in range(3):
             self.fake_R_histogram += [util.calc_hist(self.fake_imgs[i], self.device)]
+        
+        return self.feat_t, self.fake_imgs
