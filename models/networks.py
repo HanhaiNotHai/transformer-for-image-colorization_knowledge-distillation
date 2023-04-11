@@ -186,7 +186,7 @@ class global_network(nn.Module):
 class global_network_student(nn.Module):
     def __init__(self, in_dim: int) -> None:
         super(global_network_student, self).__init__()
-        self.model = nn.Sequential(*conv_block(3, in_dim, 512, kernel_size=1, padding=0))
+        self.model = nn.Sequential(*conv_block(1, in_dim, 512, kernel_size=1, padding=0))
         self.model_1 = nn.Sequential(
             *[
                 nn.Conv2d(512, 512, kernel_size=1, padding=0),
@@ -234,10 +234,10 @@ class ref_network_align(nn.Module):
 class ref_network_align_student(nn.Module):
     def __init__(self, norm_layer) -> None:
         super(ref_network_align_student, self).__init__()
-        self.model1 = nn.Sequential(*conv_block(2, 2, 64, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
-        self.model2 = nn.Sequential(*conv_block(2, 64, 128, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
-        self.model3 = nn.Sequential(*conv_block(2, 128, 256, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
-        self.model4 = nn.Sequential(*conv_block(2, 256, 512, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
+        self.model1 = nn.Sequential(*conv_block(1, 2, 64, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
+        self.model2 = nn.Sequential(*conv_block(1, 64, 128, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
+        self.model3 = nn.Sequential(*conv_block(1, 128, 256, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
+        self.model4 = nn.Sequential(*conv_block(1, 256, 512, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
 
     def forward(self, color: Tensor, corr: Tensor, H: int, W: int) -> tuple[Tensor]:
         color_flatten = color.view(color.shape[0], color.shape[1], -1)
@@ -283,10 +283,10 @@ class ref_network_hist(nn.Module):
 class ref_network_hist_student(nn.Module):
     def __init__(self, norm_layer) -> None:
         super(ref_network_hist_student, self).__init__()
-        self.model1 = nn.Sequential(*conv_block(2, 2, 64, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
-        self.model2 = nn.Sequential(*conv_block(2, 64, 128, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
-        self.model3 = nn.Sequential(*conv_block(2, 128, 256, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
-        self.model4 = nn.Sequential(*conv_block(2, 256, 512, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
+        self.model1 = nn.Sequential(*conv_block(1, 2, 64, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
+        self.model2 = nn.Sequential(*conv_block(1, 64, 128, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
+        self.model3 = nn.Sequential(*conv_block(1, 128, 256, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
+        self.model4 = nn.Sequential(*conv_block(1, 256, 512, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
 
     def forward(self, color: Tensor) -> tuple[Tensor]:
         conv1 = self.model1(color)
@@ -314,16 +314,10 @@ class conf_feature_align(nn.Module):
 class conf_feature_align_student(nn.Module):
     def __init__(self) -> None:
         super(conf_feature_align_student, self).__init__()
-        self.fc1 = nn.Sequential(*[nn.Conv1d(4096, 1024, kernel_size=1, stride=1, padding=0, bias=True), nn.ReLU(True)])
-        self.fc2 = nn.Sequential(*[nn.Conv1d(1024, 1, kernel_size=1, stride=1, padding=0, bias=True), nn.Sigmoid()])
-        self.dropout1 = nn.Dropout(0.1)
+        self.fc = nn.Sequential(*[nn.Conv1d(4096, 1, kernel_size=1, stride=1, padding=0, bias=True), nn.Sigmoid()])
 
     def forward(self, x: Tensor) -> Tensor:
-        x1 = self.fc1(x)
-        x2 = self.dropout1(x1)
-        x3 = self.fc2(x2)
-
-        return x3
+        return self.fc(x)
 
 
 class conf_feature_hist(nn.Module):
@@ -344,16 +338,10 @@ class conf_feature_hist(nn.Module):
 class conf_feature_hist_student(nn.Module):
     def __init__(self) -> None:
         super(conf_feature_hist_student, self).__init__()
-        self.fc1 = nn.Sequential(*[nn.Conv1d(4096, 1024, kernel_size=1, stride=1, padding=0, bias=True), nn.ReLU(True)])
-        self.fc2 = nn.Sequential(*[nn.Conv1d(1024, 1, kernel_size=1, stride=1, padding=0, bias=True), nn.Sigmoid()])
-        self.dropout1 = nn.Dropout(0.1)
+        self.fc = nn.Sequential(*[nn.Conv1d(4096, 1, kernel_size=1, stride=1, padding=0, bias=True), nn.Sigmoid()])
 
     def forward(self, x: Tensor) -> Tensor:
-        x1 = self.fc1(x)
-        x2 = self.dropout1(x1)
-        x3 = self.fc2(x2)
-
-        return x3
+        return self.fc(x)
 
 
 class classify_network(nn.Module):
@@ -616,7 +604,7 @@ class ColorNet(nn.Module):
         conf_3_hist = conf_2_hist[:,:,::2,::2]
 
         # hist branch
-        bias_input = bias_input.view(input.shape[0], -1, 1, 1)
+        bias_input_ = bias_input.view(input.shape[0], -1, 1, 1)
 
         conv_head = self.model_head(input)
         conv1_2 = self.model1(conv_head[:, :, ::2, ::2])
@@ -626,10 +614,8 @@ class ColorNet(nn.Module):
         conv5_3 = self.model5(conv4_3)
         conv6_3 = self.model6(conv5_3)
 
-        class_output = self.classify_network(conv6_3)
-
         # hist align
-        conv_global1 = self.global_network(bias_input)
+        conv_global1 = self.global_network(bias_input_)
         conv_global1_repeat = conv_global1.expand_as(conv6_3)
         conv_global1_add = conv6_3 * conv_global1_repeat
         conv7_3 = self.model7(conv_global1_add)
@@ -637,6 +623,7 @@ class ColorNet(nn.Module):
 
         # calculate attention matrix for histogram branch
         key_datasets = self.key_dataset.unsqueeze(0).to(device)
+        key_datasets = key_datasets.expand(color_reg.shape[0], -1, -1)
         attn_weights = torch.bmm(color_reg.flatten(2).permute(0, 2, 1), key_datasets)
         value = ab_constant.type_as(color_reg)
         attn_weights_softmax = self.softmax(attn_weights * 100.0)
@@ -676,7 +663,14 @@ class ColorNet(nn.Module):
         conv_tail_3 = self.model_tail_3(conv10_2)
         fake_img3 = self.model_out3(conv_tail_3)
 
-        return [fake_img1, fake_img2, fake_img3]
+        return ([t, r,
+                #  conv_head, conv1_2, conv2_2, conv3_3, conv4_3, conv5_3,
+                #  conv_global1, conv7_3, color_reg,
+                #  conv6_3_global, conv7_resblock1, conv7_resblock3, conv8_up, conv_tail_1,
+                 conv8_3_global, conv8_resblock1, conv8_resblock3, conv9_up, conv_tail_2,
+                 conv9_3_global, conv9_resblock1, conv9_resblock3, conv10_up, conv10_2, conv_tail_3,
+                 fake_img1, fake_img2, fake_img3,],
+                [fake_img1, fake_img2, fake_img3])
 
 
 class ColorStudentNet(nn.Module):
@@ -692,55 +686,71 @@ class ColorStudentNet(nn.Module):
         self.output_nc = output_nc
         use_bias = True
         
-        model_head = conv_block(1, input_nc, 32, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer)
+        self.model_head = nn.Sequential(*conv_block(1, input_nc, 32, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer))
 
         # Conv1-7
-        model1 = conv_block(2, 32, 64, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer)
-        model2 = conv_block(2, 64, 128, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer)
-        model3 = conv_block(3, 128, 256, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer)
-        model4 = conv_block(3, 256, 512, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer)
-        model5 = conv_block(3, 512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias, norm_layer=norm_layer)
-        model6 = conv_block(3, 512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias, norm_layer=norm_layer)
-        model7 = conv_block(3, 512, 512, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer)
+        self.model1 = nn.Sequential(*conv_block(1, 32, 64, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer))
+        self.model2 = nn.Sequential(*conv_block(1, 64, 128, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer))
+        self.model3 = nn.Sequential(*conv_block(1, 128, 256, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer))
+        self.model4 = nn.Sequential(*conv_block(1, 256, 512, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer))
+        self.model5 = nn.Sequential(*conv_block(1, 512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias, norm_layer=norm_layer))
+        self.model6 = nn.Sequential(*conv_block(1, 512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias, norm_layer=norm_layer))
+        self.model7 = nn.Sequential(*conv_block(1, 512, 512, kernel_size=3, stride=1, padding=1, bias=True, norm_layer=norm_layer))
 
-        model_hist = [nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, bias=True),]
-        model_hist += [nn.ReLU(True),]
-        model_hist += conv_block(2, 256, 256, kernel_size=3, stride=1, padding=1, bias=True)
-        model_hist += [nn.Conv2d(256, 198, kernel_size=1, stride=1, padding=0, bias=True),]
+        self.model_hist = nn.Sequential(
+            nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, bias=True),
+            nn.ReLU(True),
+            nn.Conv2d(256, 198, kernel_size=1, stride=1, padding=0, bias=True),
+        )
 
         # ResBlock0
-        resblock0_1 = [nn.Conv2d(512, 512, kernel_size=3, padding=1, bias=use_bias), norm_layer(512), nn.ReLU(True)]
-        self.resblock0_2 = ResBlock(512, norm_layer, False, use_bias)
+        self.resblock0_1 = nn.Sequential(
+            nn.Conv2d(512, 512, kernel_size=3, padding=1, bias=use_bias),
+            norm_layer(512),
+            nn.ReLU(True),
+        )
         self.resblock0_3 = ResBlock(512, norm_layer, False, use_bias)
 
         # Conv8
-        model8up = [nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, bias=use_bias)]
-        model3short8 = [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias),]
-        model8 = [nn.ReLU(True),] + conv_block(2, 256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer)
+        self.model8up = nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, bias=use_bias)
+        self.model3short8 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias)
+        self.model8 = nn.Sequential(
+            *([nn.ReLU(True),] +
+              conv_block(1, 256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer))
+        )
 
         # ResBlock1
-        resblock1_1 = [nn.Conv2d(256, 256, kernel_size=3, padding=1, bias=use_bias), norm_layer(256), nn.ReLU(True)]
-        self.resblock1_2 = ResBlock(256, norm_layer, False, use_bias)
+        self.resblock1_1 = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=3, padding=1, bias=use_bias),
+            norm_layer(256),
+            nn.ReLU(True),
+        )
         self.resblock1_3 = ResBlock(256, norm_layer, False, use_bias)
 
         # Conv9
-        model9up = [nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1, bias=use_bias),]
-        model2short9 = [nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1, bias=use_bias),]
-        model9 = [nn.ReLU(True),] + conv_block(1, 128, 128, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer)
+        self.model9up = nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1, bias=use_bias)
+        self.model2short9 = nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1, bias=use_bias)
+        self.model9 = nn.Sequential(
+            *([nn.ReLU(True),] + 
+              conv_block(1, 128, 128, kernel_size=3, stride=1, padding=1, bias=use_bias, norm_layer=norm_layer))
+        )
 
         # ResBlock2
-        resblock2_1 = [nn.Conv2d(128, 128, kernel_size=3, padding=1, bias=use_bias), norm_layer(128), nn.ReLU(True)]
-        self.resblock2_2 = ResBlock(128, norm_layer, False, use_bias)
+        self.resblock2_1 = nn.Sequential(
+            nn.Conv2d(128, 128, kernel_size=3, padding=1, bias=use_bias),
+            norm_layer(128),
+            nn.ReLU(True),
+        )
         self.resblock2_3 = ResBlock(128, norm_layer, False, use_bias)
 
         # Conv10
-        model10up = [nn.ConvTranspose2d(128, 128, kernel_size=4, stride=2, padding=1, bias=use_bias),]
-
-        model1short10 = [nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=use_bias),]
-
-        model10 = [nn.ReLU(True),]
-        model10 += [nn.Conv2d(128, 128, kernel_size=3,dilation=1, stride=1, padding=1, bias=use_bias),]
-        model10 += [nn.LeakyReLU(negative_slope=.2),]
+        self.model10up = nn.ConvTranspose2d(128, 128, kernel_size=4, stride=2, padding=1, bias=use_bias)
+        self.model1short10 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=use_bias)
+        self.model10 = nn.Sequential(
+            nn.ReLU(True),
+            nn.Conv2d(128, 128, kernel_size=3,dilation=1, stride=1, padding=1, bias=use_bias),
+            nn.LeakyReLU(negative_slope=.2),
+        )
 
         # Conv Global
         self.global_network = global_network_student(bias_input_nc)
@@ -753,49 +763,36 @@ class ColorStudentNet(nn.Module):
         self.ref_network_align = ref_network_align_student(norm_layer)
         self.ref_network_hist = ref_network_hist_student(norm_layer)
 
-        # classification
-        self.classify_network = classify_network()
-
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear')
         self.softmax_gate = nn.Softmax(dim=1)
         self.softmax = nn.Softmax(dim=-1)
         self.key_dataset = torch.eye(bias_input_nc)
 
-        model_tail_1 = [nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1, bias=use_bias), nn.LeakyReLU(negative_slope=.2)]
-        model_tail_2 = [nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1, bias=use_bias), nn.LeakyReLU(negative_slope=.2)]
-        model_tail_3 = [nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1, bias=use_bias), nn.LeakyReLU(negative_slope=.2)]
-
-        model_out1 = [nn.Conv2d(128, 2, kernel_size=1, padding=0, dilation=1, stride=1, bias=use_bias), nn.Tanh()]
-        model_out2 = [nn.Conv2d(64, 2, kernel_size=1, padding=0, dilation=1, stride=1, bias=use_bias), nn.Tanh()]
-        model_out3 = [nn.Conv2d(64, 2, kernel_size=1, padding=0, dilation=1, stride=1, bias=use_bias), nn.Tanh()]
-
-        self.model_head = nn.Sequential(*model_head)
-        self.model1 = nn.Sequential(*model1)
-        self.model2 = nn.Sequential(*model2)
-        self.model3 = nn.Sequential(*model3)
-        self.model4 = nn.Sequential(*model4)
-        self.model5 = nn.Sequential(*model5)
-        self.model6 = nn.Sequential(*model6)
-        self.model7 = nn.Sequential(*model7)
-        self.model_hist = nn.Sequential(*model_hist)
-        self.model8up = nn.Sequential(*model8up)
-        self.model8 = nn.Sequential(*model8)
-        self.model9up = nn.Sequential(*model9up)
-        self.model9 = nn.Sequential(*model9)
-        self.model10up = nn.Sequential(*model10up)
-        self.model10 = nn.Sequential(*model10)
-        self.model3short8 = nn.Sequential(*model3short8)
-        self.model2short9 = nn.Sequential(*model2short9)
-        self.model1short10 = nn.Sequential(*model1short10)
-        self.resblock0_1 = nn.Sequential(*resblock0_1)
-        self.resblock1_1 = nn.Sequential(*resblock1_1)
-        self.resblock2_1 = nn.Sequential(*resblock2_1)
-        self.model_tail_1 = nn.Sequential(*model_tail_1)
-        self.model_tail_2 = nn.Sequential(*model_tail_2)
-        self.model_tail_3 = nn.Sequential(*model_tail_3)
-        self.model_out1 = nn.Sequential(*model_out1)
-        self.model_out2 = nn.Sequential(*model_out2)
-        self.model_out3 = nn.Sequential(*model_out3)
+        self.model_tail_1 = nn.Sequential(
+            nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1, bias=use_bias),
+            nn.LeakyReLU(negative_slope=.2),
+        )
+        self.model_tail_2 = nn.Sequential(
+            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1, bias=use_bias),
+            nn.LeakyReLU(negative_slope=.2),
+        )
+        self.model_tail_3 = nn.Sequential(
+            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1, bias=use_bias),
+            nn.LeakyReLU(negative_slope=.2),
+        )
+        
+        self.model_out1 = nn.Sequential(
+            nn.Conv2d(128, 2, kernel_size=1, padding=0, dilation=1, stride=1, bias=use_bias),
+            nn.Tanh(),
+        )
+        self.model_out2 = nn.Sequential(
+            nn.Conv2d(64, 2, kernel_size=1, padding=0, dilation=1, stride=1, bias=use_bias),
+            nn.Tanh(),
+        )
+        self.model_out3 = nn.Sequential(
+            nn.Conv2d(64, 2, kernel_size=1, padding=0, dilation=1, stride=1, bias=use_bias),
+            nn.Tanh(),
+        )
 
     def forward(
         self,
@@ -805,7 +802,7 @@ class ColorStudentNet(nn.Module):
         bias_input: Tensor,
         ab_constant: Tensor,
         device: torch.device
-    ) -> list[Tensor]:
+    ) -> tuple[list[Tensor], list[Tensor]]:
         # align branch
         in_conv = self.model_head(input)
 
@@ -871,7 +868,7 @@ class ColorStudentNet(nn.Module):
         conf_3_hist = conf_2_hist[:, :, ::2, ::2]
 
         # hist branch
-        bias_input = bias_input.view(input.shape[0], -1, 1, 1)
+        bias_input_ = bias_input.view(input.shape[0], -1, 1, 1)
 
         conv_head = self.model_head(input)
         conv1_2 = self.model1(conv_head[:, :, ::2, ::2])
@@ -882,7 +879,7 @@ class ColorStudentNet(nn.Module):
         conv6_3 = self.model6(conv5_3)
 
         # hist align
-        conv_global1: Tensor = self.global_network(bias_input)
+        conv_global1: Tensor = self.global_network(bias_input_)
         conv_global1_repeat = conv_global1.expand_as(conv6_3)
         conv_global1_add = conv6_3 * conv_global1_repeat
         conv7_3 = self.model7(conv_global1_add)
@@ -890,6 +887,7 @@ class ColorStudentNet(nn.Module):
 
         # calculate attention matrix for histogram branch
         key_datasets = self.key_dataset.unsqueeze(0).to(device)
+        key_datasets = key_datasets.expand(color_reg.shape[0], -1, -1)
         attn_weights = torch.bmm(color_reg.flatten(2).permute(0, 2, 1), key_datasets)
         value = ab_constant.type_as(color_reg)
         attn_weights_softmax = self.softmax(attn_weights * 100.0)
@@ -902,8 +900,7 @@ class ColorStudentNet(nn.Module):
         # decoder1
         conv6_3_global = conv6_3 + align_3 * conf_3_align + hist_3 * conf_3_hist
         conv7_resblock1 = self.resblock0_1(conv6_3_global)
-        conv7_resblock2 = self.resblock0_2(conv7_resblock1)
-        conv7_resblock3 = self.resblock0_3(conv7_resblock2)
+        conv7_resblock3 = self.resblock0_3(conv7_resblock1)
         conv8_up = self.model8up(conv7_resblock3) + self.model3short8(conv3_3)
         conv8_3 = self.model8(conv8_up)
         conv_tail_1 = self.model_tail_1(conv8_3)
@@ -912,8 +909,7 @@ class ColorStudentNet(nn.Module):
         # decoder2
         conv8_3_global = conv8_3 + align_2 * conf_2_align + hist_2 * conf_2_hist
         conv8_resblock1 = self.resblock1_1(conv8_3_global)
-        conv8_resblock2 = self.resblock1_2(conv8_resblock1)
-        conv8_resblock3 = self.resblock1_3(conv8_resblock2)
+        conv8_resblock3 = self.resblock1_3(conv8_resblock1)
         conv9_up = self.model9up(conv8_resblock3) + self.model2short9(conv2_2)
         conv9_3 = self.model9(conv9_up)
         conv_tail_2 = self.model_tail_2(conv9_3)
@@ -922,11 +918,17 @@ class ColorStudentNet(nn.Module):
         # decoder3
         conv9_3_global = conv9_3 + align_1 * conf_1_align + hist_1 * conf_1_hist
         conv9_resblock1 = self.resblock2_1(conv9_3_global)
-        conv9_resblock2 = self.resblock2_2(conv9_resblock1)
-        conv9_resblock3 = self.resblock2_3(conv9_resblock2)
+        conv9_resblock3 = self.resblock2_3(conv9_resblock1)
         conv10_up = self.model10up(conv9_resblock3) + self.model1short10(conv1_2)
         conv10_2 = self.model10(conv10_up)
         conv_tail_3 = self.model_tail_3(conv10_2)
         fake_img3 = self.model_out3(conv_tail_3)
 
-        return [fake_img1, fake_img2, fake_img3]
+        return ([t, r,
+                #  conv_head, conv1_2, conv2_2, conv3_3, conv4_3, conv5_3,
+                #  conv_global1, conv7_3, color_reg,
+                #  conv6_3_global, conv7_resblock1, conv7_resblock3, conv8_up, conv_tail_1,
+                 conv8_3_global, conv8_resblock1, conv8_resblock3, conv9_up, conv_tail_2,
+                 conv9_3_global, conv9_resblock1, conv9_resblock3, conv10_up, conv10_2, conv_tail_3,
+                 fake_img1, fake_img2, fake_img3,],
+                [fake_img1, fake_img2, fake_img3])
