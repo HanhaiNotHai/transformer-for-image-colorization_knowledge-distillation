@@ -1,13 +1,14 @@
 import os.path
 import random
-from data.base_dataset import BaseDataset, get_transform
-from skimage import color  # require skimage
-from PIL import Image
+from collections import Counter
+
+import cv2
 import numpy as np
 import torchvision.transforms as transforms
-import cv2
-from collections import  Counter
-from tqdm import tqdm
+from PIL import Image
+from skimage import color  # require skimage
+
+from data.base_dataset import BaseDataset, get_transform
 
 
 class ColorizationDataset(BaseDataset):
@@ -36,15 +37,7 @@ class ColorizationDataset(BaseDataset):
             opt (Option class) -- stores all the experiment flags; needs to be a subclass of BaseOptions
         """
         BaseDataset.__init__(self, opt)
-        # self.dir = os.path.join(opt.dataroot, opt.phase)
-        # all_paths = []
-        # for filepath, _, filenames in os.walk(self.dir):
-        #     for filename in filenames:
-        #         all_paths.append(os.path.join(filepath, filename))
-
-        # self.AB_paths = []
-        # for _ in range(10):
-        #     self.AB_paths.append([random.choice(all_paths), random.choice(all_paths)])
+        
         if opt.isTrain:
             self.dir = os.path.join(opt.dataroot, opt.phase)
             all_paths = []
@@ -53,11 +46,18 @@ class ColorizationDataset(BaseDataset):
                     all_paths.append(os.path.join(filepath, filename))
 
             self.AB_paths = []
-            for _ in range(10 ** 6):
+            for _ in range(10 ** 4):
                 self.AB_paths.append([random.choice(all_paths), random.choice(all_paths)])
         else:
-            self.AB_paths = [[self.opt.targetImage_path, self.opt.referenceImage_path]]
+            ref_path = 'dataset/style.png'
+            self.AB_paths = []
+            for filepath, _, filenames in os.walk('dataset/test/'):
+                for filename in filenames:
+                    self.AB_paths.append(
+                        [os.path.join(filepath, filename), ref_path])
+
         self.ab_constant = np.load('./doc/ab_constant_filter.npy')
+        self.weights_index = np.load('./doc/weight_index.npy')
         self.transform_A = get_transform(self.opt, convert=False)
         self.transform_R = get_transform(self.opt, convert=False, must_crop=True)
         assert(opt.input_nc == 1 and opt.output_nc == 2)
@@ -81,7 +81,7 @@ class ColorizationDataset(BaseDataset):
 
     def process_img(self, im_path, transform):
 
-        weights_index = np.load('./doc/weight_index.npy')
+        weights_index = self.weights_index
 
         im = Image.open(im_path).convert('RGB')
         im = transform(im)
