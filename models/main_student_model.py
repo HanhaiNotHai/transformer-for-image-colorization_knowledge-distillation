@@ -1,6 +1,9 @@
 from argparse import Namespace
+from time import time
 
 from torch import Tensor
+import torch
+from distill import AFD
 
 from util import util
 from . import networks
@@ -22,32 +25,51 @@ class MainStudentModel(BaseModel):
             opt.norm, opt.init_type, opt.init_gain, self.gpu_ids
         )
         self.convert = util.Convert(self.device)
+        if self.isTrain:
+            self.loss_names = ['AFD']
+            self.criterionAFD = AFD(opt)
+            self.optimizer_G = torch.optim.Adam(
+                self.netG_student.parameters(),
+                lr=2e-5,
+                betas=(0.5, 0.99)
+            )
 
     def set_input(
         self,
-        input: dict[str, list[Tensor] | Tensor | list[str]]
+        input: dict[str, list[Tensor | str] | Tensor]
     ) -> None:
-        self.image_paths: list[str] = input['A_paths']
-        self.ab_constant: Tensor = input['ab'].to(self.device)
-        self.hist: Tensor = input['hist'].to(self.device)
-
-        self.real_A_l: list[Tensor] = []
-        self.real_A_ab: list[Tensor] = []
-        self.real_R_l: list[Tensor] = []
-        self.real_R_ab: list[Tensor] = []
-        self.real_R_histogram: list[Tensor] = []
-        for i in range(3):
-            self.real_A_l += input['A_l'][i].to(self.device).unsqueeze(0)
-            self.real_A_ab += input['A_ab'][i].to(self.device).unsqueeze(0)
-            self.real_R_l += input['R_l'][i].to(self.device).unsqueeze(0)
-            self.real_R_ab += input['R_ab'][i].to(self.device).unsqueeze(0)
-            self.real_R_histogram += [util.calc_hist(input['A_ab'][i].to(self.device), self.device)]
+        self.image_paths = input['image_paths']
+        self.ab_constant = input['ab_constant']
+        self.hist = input['hist']
+        self.real_A_l = input['real_A_l']
+        self.real_A_ab = input['real_A_ab']
+        self.real_R_l = input['real_R_l']
+        self.real_R_ab = input['real_R_ab']
+        self.real_R_histogram = input['real_R_histogram']
 
     def forward(self) -> None:
-        self.fake_imgs: list[Tensor] = self.netG_student(
+        start_time = time()
+        self.feat_s: list[Tensor]
+        self.feat_s, self.fake_imgs = self.netG_student(
             self.real_A_l[-1], self.real_R_l[-1], self.real_R_ab[0],
             self.hist, self.ab_constant, self.device
         )
+        self.netG_student_time = time() - start_time
         self.fake_R_histogram: list[Tensor] = []
         for i in range(3):
             self.fake_R_histogram += [util.calc_hist(self.fake_imgs[i], self.device)]
+    
+    def compute_losses_G(self) -> None:
+        self.loss_AFD = self.criterionAFD(self.feat_s, self.feat_t)
+        self.loss_G = 200 * self.loss_AFD
+
+    def backward_G(self) -> None:
+        self.compute_losses_G()
+        self.loss_G.backward()
+
+    def optimize_parameters(self, feat_t: list[Tensor]) -> None:
+        self.feat_t = feat_t
+        self.forward()
+        self.optimizer_G.zero_grad()
+        self.backward_G()
+        self.optimizer_G.step()
