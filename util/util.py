@@ -120,3 +120,16 @@ class Convert(object):
     def rgb_norm(self, img):
         img = (img - self.mean) / self.std
         return img.permute(0, 3, 1, 2)
+
+
+def unique_shape(s_shapes):
+    n_s = [0]
+    unique_shapes = [s_shapes[0]]
+    n = 0
+    for s_shape in s_shapes[1:]:
+        # if s_shape not in unique_shapes:
+        if s_shape != unique_shapes[-1]:
+            unique_shapes.append(s_shape)
+            n += 1
+        n_s.append(n)
+    return n_s, unique_shapes
