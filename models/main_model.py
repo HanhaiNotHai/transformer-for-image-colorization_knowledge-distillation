@@ -1,6 +1,10 @@
-from .base_model import BaseModel
-from . import networks
+from time import time
+
+from torch import Tensor
+
 from util import util
+from . import networks
+from .base_model import BaseModel
 
 
 class MainModel(BaseModel):
@@ -19,21 +23,23 @@ class MainModel(BaseModel):
         self.convert = util.Convert(self.device)
 
     def set_input(self, input):
-        self.image_paths = input['A_paths']
-        self.ab_constant = input['ab'].to(self.device)
-        self.hist = input['hist'].to(self.device)
-
-        self.real_A_l, self.real_A_ab, self.real_R_l, self.real_R_ab, self.real_R_histogram = [], [], [], [], []
-        for i in range(3):
-            self.real_A_l += input['A_l'][i].to(self.device).unsqueeze(0)
-            self.real_A_ab += input['A_ab'][i].to(self.device).unsqueeze(0)
-            self.real_R_l += input['R_l'][i].to(self.device).unsqueeze(0)
-            self.real_R_ab += input['R_ab'][i].to(self.device).unsqueeze(0)
-            self.real_R_histogram += [util.calc_hist(input['A_ab'][i].to(self.device), self.device)]
+        self.image_paths = input['image_paths']
+        self.ab_constant = input['ab_constant']
+        self.hist = input['hist']
+        self.real_A_l = input['real_A_l']
+        self.real_A_ab = input['real_A_ab']
+        self.real_R_l = input['real_R_l']
+        self.real_R_ab = input['real_R_ab']
+        self.real_R_histogram = input['real_R_histogram']
 
     def forward(self):
-        self.fake_imgs = self.netG(self.real_A_l[-1], self.real_R_l[-1], self.real_R_ab[0], self.hist,
-                                   self.ab_constant, self.device)
+        start_time = time()
+        self.feat_t: list[Tensor]
+        self.feat_t, self.fake_imgs = self.netG(
+            self.real_A_l[-1], self.real_R_l[-1], self.real_R_ab[0],
+            self.hist, self.ab_constant, self.device
+        )
+        self.netG_time = time() - start_time
         self.fake_R_histogram = []
         for i in range(3):
             self.fake_R_histogram += [util.calc_hist(self.fake_imgs[i], self.device)]
