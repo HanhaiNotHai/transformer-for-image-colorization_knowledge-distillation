@@ -37,7 +37,8 @@ class ColorizationDataset(BaseDataset):
             opt (Option class) -- stores all the experiment flags; needs to be a subclass of BaseOptions
         """
         BaseDataset.__init__(self, opt)
-        
+
+        self.AB_paths = []
         if opt.isTrain:
             self.dir = os.path.join(opt.dataroot, opt.phase)
             all_paths = []
@@ -45,17 +46,16 @@ class ColorizationDataset(BaseDataset):
                 for filename in filenames:
                     all_paths.append(os.path.join(filepath, filename))
 
-            self.AB_paths = []
             for _ in range(10 ** 4):
                 self.AB_paths.append([random.choice(all_paths), random.choice(all_paths)])
         else:
             ref_path = 'dataset/style.png'
-            self.AB_paths = []
             for filepath, _, filenames in os.walk('dataset/test/'):
                 for filename in filenames:
                     self.AB_paths.append(
                         [os.path.join(filepath, filename), ref_path])
 
+        self.AB_paths.sort()
         self.ab_constant = np.load('./doc/ab_constant_filter.npy')
         self.weights_index = np.load('./doc/weight_index.npy')
         self.transform_A = get_transform(self.opt, convert=False)
