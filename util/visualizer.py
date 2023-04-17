@@ -6,7 +6,6 @@ from subprocess import PIPE, Popen
 
 import numpy as np
 from PIL import Image
-from PIL.Image import Resampling
 
 from . import html, util
 
@@ -45,13 +44,13 @@ def save_images(webpage, visuals, image_path, aspect_ratio=1.0, width=256):
         if aspect_ratio > 1.0:
             im = np.array(
                 Image.fromarray(im).resize(
-                    (h, int(w * aspect_ratio)), resample=Resampling.BICUBIC
+                    (h, int(w * aspect_ratio)), resample=Image.BICUBIC
                 )
             )
         if aspect_ratio < 1.0:
             im = np.array(
                 Image.fromarray(im).resize(
-                    (int(h / aspect_ratio), w), resample=Resampling.BICUBIC
+                    (int(h / aspect_ratio), w), resample=Image.BICUBIC
                 )
             )
         util.save_image(im, save_path)
@@ -79,13 +78,13 @@ def save_more_images(webpage, name, sources, targets, aspect_ratio=1.0, width=25
             if aspect_ratio > 1.0:
                 im = np.array(
                     Image.fromarray(im).resize(
-                        (h, int(w * aspect_ratio)), resample=Resampling.BICUBIC
+                        (h, int(w * aspect_ratio)), resample=Image.BICUBIC
                     )
                 )
             if aspect_ratio < 1.0:
                 im = np.array(
                     Image.fromarray(im).resize(
-                        (int(h / aspect_ratio), w), resample=Resampling.BICUBIC
+                        (int(h / aspect_ratio), w), resample=Image.BICUBIC
                     )
                 )
             util.save_image(im, save_path)
