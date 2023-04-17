@@ -32,9 +32,11 @@ class MainStudentModel(BaseModel):
             opt.init_gain,
             self.gpu_ids,
         )
-        self.ab_constant = torch.tensor(
-            np.load('./doc/ab_constant_filter.npy')
-        ).unsqueeze(0)
+        self.ab_constant = (
+            torch.tensor(np.load('./doc/ab_constant_filter.npy'))
+            .unsqueeze(0)
+            .repeat(opt.batch_size, 1, 1)
+        )
         if self.isTrain:
             self.loss_names = ['AFD', 'L1', 'perc']
             self.criterion_AFD = AFD(opt).to(self.device)

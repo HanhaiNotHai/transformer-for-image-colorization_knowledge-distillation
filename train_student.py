@@ -1,6 +1,7 @@
 import pickle
 from math import inf
 
+import numpy as np
 import torch
 from torch.cuda import amp
 from tqdm import tqdm
@@ -15,14 +16,15 @@ from options.train_student_options import TrainStudentOption
 from util import util
 
 if __name__ == '__main__':
-    opt_t = TestOptions().parse()
-
     opt = TrainStudentOption().parse()
     opt.num_threads = 20
     opt.batch_size = 2
     opt.no_flip = True
-    opt.continue_train = True
+    opt.continue_train = False
     opt.amp = True if opt.gpu_ids else False
+    
+    opt_t = TestOptions().parse()
+    opt_t.batch_size = opt.batch_size
 
     torch.set_num_threads(opt.num_threads)
 
@@ -52,21 +54,26 @@ if __name__ == '__main__':
     )
     with open('doc/instance_data', 'rb') as f:
         data = pickle.load(f)
+    ab_constant = (
+        torch.tensor(np.load('./doc/ab_constant_filter.npy'))
+        .unsqueeze(0)
+        .repeat(opt.batch_size, 1, 1)
+    )
     with torch.no_grad():
         feat_t, _ = net_G(
-            data['real_A_l'][-1],
-            data['real_R_l'][-1],
-            data['real_R_ab'][0],
+            data['A_l'][-1],
+            data['R_l'],
+            data['R_ab'][0],
             data['hist'],
-            data['ab_constant'],
+            ab_constant,
             device,
         )
         feat_s, _ = net_G_student(
-            data['real_A_l'][-1],
-            data['real_R_l'][-1],
-            data['real_R_ab'][0],
+            data['A_l'][-1],
+            data['R_l'],
+            data['R_ab'][0],
             data['hist'],
-            data['ab_constant'],
+            ab_constant,
             device,
         )
     opt.s_shapes = [f.shape for f in feat_s]
@@ -76,6 +83,7 @@ if __name__ == '__main__':
     model_t: ColorizationModel = create_model(opt_t)
     model_t.setup(opt_t)
     model_t.eval()
+    model_t.isTrain = True
 
     model_s: ColorizationStudentModel = create_model(opt)
     model_s.setup(opt)

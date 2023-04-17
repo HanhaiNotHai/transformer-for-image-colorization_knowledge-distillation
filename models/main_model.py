@@ -29,9 +29,11 @@ class MainModel(BaseModel):
             opt.init_gain,
             self.gpu_ids,
         )
-        self.ab_constant = torch.tensor(
-            np.load('./doc/ab_constant_filter.npy')
-        ).unsqueeze(0)
+        self.ab_constant = (
+            torch.tensor(np.load('./doc/ab_constant_filter.npy'))
+            .unsqueeze(0)
+            .repeat(opt.batch_size, 1, 1)
+        )
 
     def set_input(self, input):
         self.real_A_l = [A_l.to(self.device) for A_l in input['A_l']]
