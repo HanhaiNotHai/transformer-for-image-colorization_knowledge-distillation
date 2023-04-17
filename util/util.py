@@ -7,7 +7,6 @@ import numpy as np
 import torch
 from PIL import Image
 from scipy import linalg
-from skimage import color
 
 
 def tensor2im(input_image, imtype=np.uint8):

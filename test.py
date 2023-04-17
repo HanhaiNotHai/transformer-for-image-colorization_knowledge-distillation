@@ -6,9 +6,8 @@ import torch
 from data import create_dataset
 from models import create_model
 from options.test_options import TestOptions
-from util import html, util
+from util import html
 from util.visualizer import save_images
-
 
 if __name__ == '__main__':
     torch.set_num_threads(1)

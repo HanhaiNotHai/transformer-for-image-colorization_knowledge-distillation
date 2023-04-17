@@ -2,7 +2,6 @@ import pickle
 from math import inf
 
 import torch
-from torch import Tensor
 from torch.cuda import amp
 from tqdm import tqdm
 

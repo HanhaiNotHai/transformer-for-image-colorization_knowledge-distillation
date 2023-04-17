@@ -6,7 +6,7 @@ import torch
 from data import create_dataset
 from models import create_model
 from options.test_student_options import TestStudentOptions
-from util import html, util
+from util import html
 from util.visualizer import save_images
 
 if __name__ == '__main__':
