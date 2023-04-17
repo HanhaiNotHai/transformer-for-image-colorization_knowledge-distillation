@@ -9,6 +9,9 @@ from torch.nn import init
 from torch.nn.common_types import _size_2_t
 from torch.optim import lr_scheduler
 
+from models.NonlocalNet import VGG19_pytorch
+from util.util import tensor_lab2rgb, uncenter_l
+
 
 class Identity(nn.Module):
     def forward(self, x):
@@ -663,14 +666,15 @@ class ColorNet(nn.Module):
         conv_tail_3 = self.model_tail_3(conv10_2)
         fake_img3 = self.model_out3(conv_tail_3)
 
-        return ([t, r,
-                #  conv_head, conv1_2, conv2_2, conv3_3, conv4_3, conv5_3,
-                #  conv_global1, conv7_3, color_reg,
-                #  conv6_3_global, conv7_resblock1, conv7_resblock3, conv8_up, conv_tail_1,
-                 conv8_3_global, conv8_resblock1, conv8_resblock3, conv9_up, conv_tail_2,
-                 conv9_3_global, conv9_resblock1, conv9_resblock3, conv10_up, conv10_2, conv_tail_3,
-                 fake_img1, fake_img2, fake_img3,],
-                [fake_img1, fake_img2, fake_img3])
+        return ([
+            t, r,
+            # conv_head, conv1_2, conv2_2, conv3_3, conv4_3, conv5_3,
+            # conv_global1, conv7_3, color_reg,
+            conv6_3_global,  # conv7_resblock1, conv7_resblock3, conv8_up, conv_tail_1,
+            conv8_3_global,  # conv8_resblock1, conv8_resblock3, conv9_up, conv_tail_2,
+            conv9_3_global, conv9_resblock1, conv9_resblock3, conv10_up, conv10_2, conv_tail_3,
+        ],
+            [fake_img1, fake_img2, fake_img3])
 
 
 class ColorStudentNet(nn.Module):
@@ -924,11 +928,40 @@ class ColorStudentNet(nn.Module):
         conv_tail_3 = self.model_tail_3(conv10_2)
         fake_img3 = self.model_out3(conv_tail_3)
 
-        return ([t, r,
-                #  conv_head, conv1_2, conv2_2, conv3_3, conv4_3, conv5_3,
-                #  conv_global1, conv7_3, color_reg,
-                #  conv6_3_global, conv7_resblock1, conv7_resblock3, conv8_up, conv_tail_1,
-                 conv8_3_global, conv8_resblock1, conv8_resblock3, conv9_up, conv_tail_2,
-                 conv9_3_global, conv9_resblock1, conv9_resblock3, conv10_up, conv10_2, conv_tail_3,
-                 fake_img1, fake_img2, fake_img3,],
-                [fake_img1, fake_img2, fake_img3])
+        return ([
+            t, r,
+            # conv_head, conv1_2, conv2_2, conv3_3, conv4_3, conv5_3,
+            # conv_global1, conv7_3, color_reg,
+            conv6_3_global,  # conv7_resblock1, conv7_resblock3, conv8_up, conv_tail_1,
+            conv8_3_global,  # conv8_resblock1, conv8_resblock3, conv9_up, conv_tail_2,
+            conv9_3_global, conv9_resblock1, conv9_resblock3, conv10_up, conv10_2, conv_tail_3,
+        ],
+            [fake_img1, fake_img2, fake_img3])
+
+
+class L1Loss(nn.Module):
+    def __init__(self) -> None:
+        super(L1Loss, self).__init__()
+
+    def __call__(self, in0: Tensor, in1: Tensor) -> Tensor:
+        return torch.sum(torch.abs(in0 - in1), dim=1, keepdim=True)
+
+
+class PerceptualLoss(nn.Module):
+    def __init__(self) -> None:
+        super(PerceptualLoss, self).__init__()
+        self.vggnet = VGG19_pytorch()
+        self.vggnet.load_state_dict(torch.load('checkpoints/vgg19_conv.pth'))
+        self.vggnet.eval()
+        for param in self.vggnet.parameters():
+            param.requires_grad = False
+        self.mse_loss = nn.MSELoss()
+
+    def forward(self, I_current_l, I_current_ab_predict, I_current_ab):
+        I_predict_rgb = tensor_lab2rgb(torch.cat((uncenter_l(I_current_l), I_current_ab_predict), dim=1))
+        predict_relu5_1 = self.vggnet(I_predict_rgb, ['r52'], preprocess=True)[0]
+        
+        I_current_rgb = tensor_lab2rgb(torch.cat((uncenter_l(I_current_l), I_current_ab), dim=1))
+        A_relu5_1 = self.vggnet(I_current_rgb, ['r52'], preprocess=True)[0]
+        
+        return self.mse_loss(predict_relu5_1, A_relu5_1.detach())

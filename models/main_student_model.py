@@ -1,8 +1,9 @@
 from argparse import Namespace
 from time import time
 
-from torch import Tensor
 import torch
+from torch import Tensor
+from torch.cuda import amp
 from distill import AFD
 
 from util import util
@@ -26,13 +27,22 @@ class MainStudentModel(BaseModel):
         )
         self.convert = util.Convert(self.device)
         if self.isTrain:
-            self.loss_names = ['AFD']
-            self.criterionAFD = AFD(opt)
+            self.loss_names = ['AFD', 'L1', 'perc']
+            self.criterion_AFD = AFD(opt).to(self.device)
+            self.criterion_L1 = torch.nn.L1Loss().to(self.device)
+            # self.criterion_L1 = networks.L1Loss().to(self.device)
+            self.criterion_perc = networks.PerceptualLoss().to(self.device)
+            self.criterion_GAN = ...
+            self.criterion_sparse = ...
+            self.criterion_hist = ...
+
             self.optimizer_G = torch.optim.Adam(
                 self.netG_student.parameters(),
                 lr=2e-5,
                 betas=(0.5, 0.99)
             )
+            
+            self.scaler = amp.GradScaler(enabled=self.opt.amp)
 
     def set_input(
         self,
@@ -57,19 +67,42 @@ class MainStudentModel(BaseModel):
         self.netG_student_time = time() - start_time
         self.fake_R_histogram: list[Tensor] = []
         for i in range(3):
-            self.fake_R_histogram += [util.calc_hist(self.fake_imgs[i], self.device)]
-    
+            self.fake_R_histogram += [
+                util.calc_hist(self.fake_imgs[i], self.device)
+            ]
+
     def compute_losses_G(self) -> None:
-        self.loss_AFD = self.criterionAFD(self.feat_s, self.feat_t)
-        self.loss_G = 200 * self.loss_AFD
+        self.loss_AFD = self.criterion_AFD(self.feat_s, self.feat_t)
+        self.loss_L1 = sum(self.criterion_L1(f_s, f_t)
+                           for f_s, f_t in zip(self.fake_imgs, self.fake_imgs_t))
+        self.loss_perc = sum(self.criterion_perc(l, f_s, f_t)
+                             for l, f_s, f_t in zip(self.real_A_l, self.fake_imgs, self.fake_imgs_t))
+        # self.loss_GAN = self.criterion_GAN()
+        self.loss_GAN = 0
+        # self.loss_sparse = self.criterion_sparse()
+        self.loss_sparse = 0
+        # self.loss_hist = self.criterion_hist()
+        self.loss_hist = 0
+        self.loss_G = 200 * self.loss_AFD + \
+            0.9 * (1000 * self.loss_L1 +
+                   1000 * self.loss_perc +
+                   0.1 * self.loss_GAN +
+                   1 * self.loss_sparse +
+                   1 * self.loss_hist)
 
-    def backward_G(self) -> None:
-        self.compute_losses_G()
-        self.loss_G.backward()
-
-    def optimize_parameters(self, feat_t: list[Tensor]) -> None:
+    def optimize_parameters(
+        self,
+        feat_t: list[Tensor],
+        fake_imgs_t: list[Tensor]
+    ) -> None:
         self.feat_t = feat_t
-        self.forward()
+        self.fake_imgs_t = fake_imgs_t
+        with amp.autocast(enabled=self.opt.amp):
+            self.forward()
+            self.compute_losses_G()
+        # self.loss_G.backward()
+        self.scaler.scale(self.loss_G).backward()
+        # self.optimizer_G.step()
+        self.scaler.step(self.optimizer_G)
+        self.scaler.update()
         self.optimizer_G.zero_grad()
-        self.backward_G()
-        self.optimizer_G.step()

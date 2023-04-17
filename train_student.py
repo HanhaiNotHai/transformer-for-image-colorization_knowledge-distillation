@@ -2,6 +2,7 @@ from math import inf
 import pickle
 import torch
 from torch import Tensor
+from torch.cuda import amp
 from tqdm import tqdm
 
 from data import create_dataset
@@ -47,7 +48,8 @@ if __name__ == '__main__':
     opt.num_threads = 20
     opt.batch_size = 2
     opt.no_flip = True
-    opt.continue_train = False
+    opt.continue_train = True
+    opt.amp = True if opt.gpu_ids else False
 
     device = torch.device('cuda:{}'.format(
         opt.gpu_ids[0])) if opt.gpu_ids else torch.device('cpu')
@@ -89,32 +91,32 @@ if __name__ == '__main__':
     best_loss = inf
     for epoch in range(epochs):
         with tqdm(desc=f'Epoch {epoch + 1}/{epochs}', total=len(dataset) // opt.batch_size) as t:
-            for i, data in enumerate(dataset):
+            for i, data in enumerate(dataset, 1):
                 data = make_input(data)
 
                 with torch.no_grad():
                     model_t.set_input(data)
-                    model_t.forward()
-                    feat_t = [f.detach() for f in model_t.feat_t]
+                    with amp.autocast(enabled=opt.amp):
+                        feat_t, fake_imgs_t = model_t.forward()
+                    feat_t = [f.detach() for f in feat_t]
+                    fake_imgs_t = [f.detach() for f in fake_imgs_t]
 
                 model_s.set_input(data)
-                model_s.optimize_parameters(feat_t)
+                model_s.optimize_parameters(feat_t, fake_imgs_t)
 
-                losses = model_s.get_current_losses()
-                loss = sum(losses.values())
-                t.set_postfix(
-                    loss=list(losses.items()),
-                    netG_time=model_t.netG_time,
-                    netG_s_time=model_s.netG_student_time,
+                t.set_postfix_str(
+                    f'loss={model_s.loss_G:.2} ' +
+                    ' '.join(f'{k}={v:.2e}' for k, v in model_s.get_current_losses().items()) +
+                    f' netG_time={model_t.netG_time:.3} netG_s_time={model_s.netG_student_time:.3}'
                 )
                 t.update(1)
 
-                if i % 1000 == 0:
+                if i % (len(dataset) // opt.batch_size // 10) == 0:
                     model_s.save_networks('latest')
-                    if loss < best_loss:
+                    if model_s.loss_G < best_loss:
                         model_s.save_networks('best')
-        
+
         model_s.save_networks('latest')
-        if loss < best_loss:
+        if model_s.loss_G < best_loss:
             model_s.save_networks('best')
         model_s.update_learning_rate()
