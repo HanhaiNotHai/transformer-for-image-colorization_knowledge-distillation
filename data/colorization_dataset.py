@@ -58,7 +58,6 @@ class ColorizationDataset(BaseDataset):
                     self.AB_paths.append([os.path.join(filepath, filename), ref_path])
 
         self.AB_paths.sort()
-        self.ab_constant = np.load('./doc/ab_constant_filter.npy')
         self.weights_index = np.load('./doc/weight_index.npy')
         self.transform_A = get_transform(self.opt, convert=False)
         self.transform_R = get_transform(self.opt, convert=False, must_crop=True)
@@ -66,29 +65,36 @@ class ColorizationDataset(BaseDataset):
 
     def __getitem__(self, index):
         path_A, path_R = self.AB_paths[index]
-        im_A_l, im_A_ab, _ = self.process_img(path_A, self.transform_A)
-        im_R_l, im_R_ab, hist = self.process_img(path_R, self.transform_R)
+        im_A_rgb, im_A_l, im_A_ab, _ = self.process_img(path_A, self.transform_A)
+        im_R_rgb, im_R_l, im_R_ab, hist = self.process_img(path_R, self.transform_R)
 
-        im_dict = {
-            'A_l': im_A_l,
-            'A_ab': im_A_ab,
-            'R_l': im_R_l,
-            'R_ab': im_R_ab,
-            'ab': self.ab_constant,
-            'hist': hist,
-            'A_paths': path_A,
-        }
-        return im_dict
+        return (
+            dict(
+                hist=hist,
+                A_l=im_A_l,
+                R_l=im_R_l[-1],
+                R_ab=im_R_ab,
+            )
+            if self.opt.isTrain
+            else dict(
+                A_paths=path_A,
+                A_rgb=im_A_rgb,
+                A_l=im_A_l,
+                A_ab=im_A_ab[-1],
+                R_rgb=im_R_rgb,
+                R_l=im_R_l[-1],
+                R_ab=im_R_ab,
+                hist=hist,
+            )
+        )
 
     def process_img(self, im_path, transform):
-        weights_index = self.weights_index
-
         im = Image.open(im_path).convert('RGB')
         im = transform(im)
         im = self.__scale_width(im, 256)
         im = np.array(im)
         im = im[: 16 * int(im.shape[0] / 16.0), : 16 * int(im.shape[1] / 16.0), :]
-        l_ts, ab_ts, gt_keys = [], [], []
+        l_ts, ab_ts = [], []
         hist_total_new = np.zeros((441,), dtype=np.float32)
         for ratio in [0.25, 0.5, 1]:
             if ratio == 1:
@@ -107,7 +113,7 @@ class ColorizationDataset(BaseDataset):
                 for k, v in dict_counter.items():
                     hist_total_new[k] += v
 
-                hist = hist_total_new[weights_index]
+                hist = hist_total_new[self.weights_index]
                 hist = hist / np.sum(hist)
 
             lab_t = transforms.ToTensor()(lab)
@@ -116,7 +122,7 @@ class ColorizationDataset(BaseDataset):
             l_ts.append(l_t)
             ab_ts.append(ab_t)
 
-        return l_ts, ab_ts, hist
+        return im, l_ts, ab_ts, hist
 
     def __scale_width(self, img, target_width, method=Image.BICUBIC):
         ow, oh = img.size

@@ -15,34 +15,6 @@ from options.test_options import TestOptions
 from options.train_student_options import TrainStudentOption
 from util import util
 
-
-def make_input(
-    input: dict[list[Tensor | str] | Tensor],
-) -> dict[str, list[Tensor | str] | Tensor]:
-    image_paths = input['A_paths']
-    ab_constant = input['ab'].to(device)
-    hist = input['hist'].to(device)
-
-    real_A_l, real_A_ab, real_R_l, real_R_ab, real_R_histogram = [], [], [], [], []
-    for i in range(3):
-        real_A_l += input['A_l'][i].to(device).unsqueeze(0)
-        real_A_ab += input['A_ab'][i].to(device).unsqueeze(0)
-        real_R_l += input['R_l'][i].to(device).unsqueeze(0)
-        real_R_ab += input['R_ab'][i].to(device).unsqueeze(0)
-        real_R_histogram += [util.calc_hist(input['A_ab'][i].to(device), device)]
-
-    return dict(
-        image_paths=image_paths,
-        ab_constant=ab_constant,
-        hist=hist,
-        real_A_l=real_A_l,
-        real_A_ab=real_A_ab,
-        real_R_l=real_R_l,
-        real_R_ab=real_R_ab,
-        real_R_histogram=real_R_histogram,
-    )
-
-
 if __name__ == '__main__':
     opt_t = TestOptions().parse()
 
@@ -52,7 +24,7 @@ if __name__ == '__main__':
     opt.no_flip = True
     opt.continue_train = True
     opt.amp = True if opt.gpu_ids else False
-    
+
     torch.set_num_threads(opt.num_threads)
 
     device = (
@@ -81,7 +53,6 @@ if __name__ == '__main__':
     )
     with open('doc/instance_data', 'rb') as f:
         data = pickle.load(f)
-    data = make_input(data)
     with torch.no_grad():
         feat_t, _ = net_G(
             data['real_A_l'][-1],
@@ -119,8 +90,6 @@ if __name__ == '__main__':
             desc=f'Epoch {epoch + 1}/{epochs}', total=len(dataset) // opt.batch_size
         ) as t:
             for i, data in enumerate(dataset, 1):
-                data = make_input(data)
-
                 with torch.no_grad():
                     model_t.set_input(data)
                     with amp.autocast(enabled=opt.amp):
@@ -142,10 +111,6 @@ if __name__ == '__main__':
 
                 if i % (len(dataset) // opt.batch_size // 10) == 0:
                     model_s.save_networks('latest')
-                    if model_s.loss_G < best_loss:
-                        model_s.save_networks('best')
 
         model_s.save_networks('latest')
-        if model_s.loss_G < best_loss:
-            model_s.save_networks('best')
         model_s.update_learning_rate()

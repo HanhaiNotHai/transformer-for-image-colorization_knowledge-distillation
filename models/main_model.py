@@ -1,5 +1,7 @@
 from time import time
 
+import numpy as np
+import torch
 from torch import Tensor
 
 from util import util
@@ -27,32 +29,35 @@ class MainModel(BaseModel):
             opt.init_gain,
             self.gpu_ids,
         )
-        self.convert = util.Convert(self.device)
+        self.ab_constant = torch.tensor(
+            np.load('./doc/ab_constant_filter.npy')
+        ).unsqueeze(0)
 
     def set_input(self, input):
-        self.image_paths = input['image_paths']
-        self.ab_constant = input['ab_constant']
-        self.hist = input['hist']
-        self.real_A_l = input['real_A_l']
-        self.real_A_ab = input['real_A_ab']
-        self.real_R_l = input['real_R_l']
-        self.real_R_ab = input['real_R_ab']
-        self.real_R_histogram = input['real_R_histogram']
+        self.real_A_l = [A_l.to(self.device) for A_l in input['A_l']]
+        self.real_R_l = input['R_l'].to(self.device)
+        self.real_R_ab = [R_ab.to(self.device) for R_ab in input['R_ab']]
+        self.hist = input['hist'].to(self.device)
+        if not self.isTrain:
+            self.image_paths = input['A_paths']
+            self.real_A_rgb = input['A_rgb'].squeeze(0).cpu().numpy()
+            self.real_R_rgb = input['R_rgb'].squeeze(0).cpu().numpy()
+            self.real_R_histogram = util.calc_hist(
+                input['A_ab'].to(self.device), self.device
+            )
 
     def forward(self):
         start_time = time()
         self.feat_t: list[Tensor]
         self.feat_t, self.fake_imgs = self.netG(
             self.real_A_l[-1],
-            self.real_R_l[-1],
+            self.real_R_l,
             self.real_R_ab[0],
             self.hist,
             self.ab_constant,
             self.device,
         )
         self.netG_time = time() - start_time
-        self.fake_R_histogram = []
-        for i in range(3):
-            self.fake_R_histogram += [util.calc_hist(self.fake_imgs[i], self.device)]
+        self.fake_R_histogram = util.calc_hist(self.fake_imgs[-1], self.device)
 
         return self.feat_t, self.fake_imgs

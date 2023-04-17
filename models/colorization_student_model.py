@@ -37,8 +37,6 @@ class ColorizationStudentModel(MainStudentModel):
 
     def compute_visuals(self) -> None:
         self.real_A_l_0 = self.real_A_l[-1]
-        self.real_A_rgb = self.lab2rgb(self.real_A_l[-1], self.real_A_ab[-1])
-        self.real_R_rgb = self.lab2rgb(self.real_R_l[-1], self.real_R_ab[-1])
         self.real_R_rgb = cv2.resize(
             self.real_R_rgb, (self.real_A_rgb.shape[1], self.real_A_rgb.shape[0])
         )
@@ -52,10 +50,6 @@ class ColorizationStudentModel(MainStudentModel):
                 )
 
     def compute_scores(self) -> list[float]:
-        metrics = []
-        hr = self.real_R_histogram[-1].data.cpu().float().numpy().flatten()
-        hg = self.fake_R_histogram[-1].data.cpu().float().numpy().flatten()
-        intersect = cv2.compareHist(hr, hg, cv2.HISTCMP_INTERSECT)
-        metrics.append(intersect)
-
-        return metrics
+        hr = self.real_R_histogram.data.cpu().float().numpy().flatten()
+        hg = self.fake_R_histogram.data.cpu().float().numpy().flatten()
+        return cv2.compareHist(hr, hg, cv2.HISTCMP_INTERSECT)
