@@ -3,6 +3,7 @@ from time import time
 from torch import Tensor
 
 from util import util
+
 from . import networks
 from .base_model import BaseModel
 
@@ -14,12 +15,18 @@ class MainModel(BaseModel):
         return parser
 
     def __init__(self, opt):
-
         BaseModel.__init__(self, opt)
         self.visual_names = ['real_A', 'fake_B', 'real_B']
         self.model_names = ['G']
-        self.netG = networks.define_G(opt.input_nc, opt.bias_input_nc, opt.output_nc, opt.norm, opt.init_type,
-                                      opt.init_gain, self.gpu_ids)
+        self.netG = networks.define_G(
+            opt.input_nc,
+            opt.bias_input_nc,
+            opt.output_nc,
+            opt.norm,
+            opt.init_type,
+            opt.init_gain,
+            self.gpu_ids,
+        )
         self.convert = util.Convert(self.device)
 
     def set_input(self, input):
@@ -36,12 +43,16 @@ class MainModel(BaseModel):
         start_time = time()
         self.feat_t: list[Tensor]
         self.feat_t, self.fake_imgs = self.netG(
-            self.real_A_l[-1], self.real_R_l[-1], self.real_R_ab[0],
-            self.hist, self.ab_constant, self.device
+            self.real_A_l[-1],
+            self.real_R_l[-1],
+            self.real_R_ab[0],
+            self.hist,
+            self.ab_constant,
+            self.device,
         )
         self.netG_time = time() - start_time
         self.fake_R_histogram = []
         for i in range(3):
             self.fake_R_histogram += [util.calc_hist(self.fake_imgs[i], self.device)]
-        
+
         return self.feat_t, self.fake_imgs

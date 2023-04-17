@@ -1,12 +1,13 @@
 import os
 
+import numpy as np
 import torch
-from options.test_options import TestOptions
+
 from data import create_dataset
 from models import create_model
-from util.visualizer import save_images
+from options.test_options import TestOptions
 from util import html, util
-import numpy as np
+from util.visualizer import save_images
 
 
 def make_input(input):
@@ -20,8 +21,7 @@ def make_input(input):
         real_A_ab += input['A_ab'][i].to(device).unsqueeze(0)
         real_R_l += input['R_l'][i].to(device).unsqueeze(0)
         real_R_ab += input['R_ab'][i].to(device).unsqueeze(0)
-        real_R_histogram += [util.calc_hist(input['A_ab']
-                                            [i].to(device), device)]
+        real_R_histogram += [util.calc_hist(input['A_ab'][i].to(device), device)]
 
     return dict(
         image_paths=image_paths,
@@ -37,7 +37,7 @@ def make_input(input):
 
 if __name__ == '__main__':
     torch.set_num_threads(1)
-    
+
     opt = TestOptions().parse()
     opt.num_threads = 0
     opt.batch_size = 1
@@ -45,14 +45,20 @@ if __name__ == '__main__':
     opt.no_flip = True
     opt.display_id = -1
 
-    device = torch.device('cuda:{}'.format(
-        opt.gpu_ids[0])) if opt.gpu_ids else torch.device('cpu')
+    device = (
+        torch.device('cuda:{}'.format(opt.gpu_ids[0]))
+        if opt.gpu_ids
+        else torch.device('cpu')
+    )
 
     dataset = create_dataset(opt)
     model = create_model(opt)
     model.setup(opt)
     web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.epoch))
-    webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.epoch))
+    webpage = html.HTML(
+        web_dir,
+        'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.epoch),
+    )
     scores = []
     if opt.eval:
         model.eval()
@@ -65,6 +71,12 @@ if __name__ == '__main__':
         metrics = model.compute_scores()
         scores.extend(metrics)
         print('processing (%04d)-th image... %s' % (i, img_path))
-        save_images(webpage, visuals, img_path, aspect_ratio=opt.aspect_ratio, width=opt.display_winsize)
+        save_images(
+            webpage,
+            visuals,
+            img_path,
+            aspect_ratio=opt.aspect_ratio,
+            width=opt.display_winsize,
+        )
     webpage.save()
     print('Histogram Intersection: %.4f' % np.mean(scores))

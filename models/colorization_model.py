@@ -1,12 +1,12 @@
-from .main_model import MainModel
+import cv2
+import numpy as np
 import torch
 from skimage import color
-import numpy as np
-import cv2
+
+from .main_model import MainModel
 
 
 class ColorizationModel(MainModel):
-
     @staticmethod
     def modify_commandline_options(parser, is_train=True):
         MainModel.modify_commandline_options(parser, is_train)
@@ -36,12 +36,17 @@ class ColorizationModel(MainModel):
         self.real_A_l_0 = self.real_A_l[-1]
         self.real_A_rgb = self.lab2rgb(self.real_A_l[-1], self.real_A_ab[-1])
         self.real_R_rgb = self.lab2rgb(self.real_R_l[-1], self.real_R_ab[-1])
-        self.real_R_rgb = cv2.resize(self.real_R_rgb, (self.real_A_rgb.shape[1], self.real_A_rgb.shape[0]))
+        self.real_R_rgb = cv2.resize(
+            self.real_R_rgb, (self.real_A_rgb.shape[1], self.real_A_rgb.shape[0])
+        )
         self.fake_R_rgb = []
         for i in range(3):
             self.fake_R_rgb += [self.lab2rgb(self.real_A_l[i], self.fake_imgs[i])]
             if i != 2:
-                self.fake_R_rgb[i] = cv2.resize(self.fake_R_rgb[i], (self.real_A_rgb.shape[1], self.real_A_rgb.shape[0]))
+                self.fake_R_rgb[i] = cv2.resize(
+                    self.fake_R_rgb[i],
+                    (self.real_A_rgb.shape[1], self.real_A_rgb.shape[0]),
+                )
 
     def compute_scores(self):
         metrics = []

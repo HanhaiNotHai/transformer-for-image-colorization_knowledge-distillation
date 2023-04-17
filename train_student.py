@@ -1,5 +1,6 @@
-from math import inf
 import pickle
+from math import inf
+
 import torch
 from torch import Tensor
 from torch.cuda import amp
@@ -15,7 +16,9 @@ from options.train_student_options import TrainStudentOption
 from util import util
 
 
-def make_input(input: dict[list[Tensor | str] | Tensor]) -> dict[str, list[Tensor | str] | Tensor]:
+def make_input(
+    input: dict[list[Tensor | str] | Tensor],
+) -> dict[str, list[Tensor | str] | Tensor]:
     image_paths = input['A_paths']
     ab_constant = input['ab'].to(device)
     hist = input['hist'].to(device)
@@ -26,8 +29,7 @@ def make_input(input: dict[list[Tensor | str] | Tensor]) -> dict[str, list[Tenso
         real_A_ab += input['A_ab'][i].to(device).unsqueeze(0)
         real_R_l += input['R_l'][i].to(device).unsqueeze(0)
         real_R_ab += input['R_ab'][i].to(device).unsqueeze(0)
-        real_R_histogram += [util.calc_hist(input['A_ab']
-                                            [i].to(device), device)]
+        real_R_histogram += [util.calc_hist(input['A_ab'][i].to(device), device)]
 
     return dict(
         image_paths=image_paths,
@@ -50,29 +52,52 @@ if __name__ == '__main__':
     opt.no_flip = True
     opt.continue_train = True
     opt.amp = True if opt.gpu_ids else False
+    
+    torch.set_num_threads(opt.num_threads)
 
-    device = torch.device('cuda:{}'.format(
-        opt.gpu_ids[0])) if opt.gpu_ids else torch.device('cpu')
+    device = (
+        torch.device('cuda:{}'.format(opt.gpu_ids[0]))
+        if opt.gpu_ids
+        else torch.device('cpu')
+    )
 
     net_G = define_G(
-        opt.input_nc, opt.bias_input_nc, opt.output_nc,
-        opt.norm, opt.init_type, opt.init_gain, opt.gpu_ids
+        opt.input_nc,
+        opt.bias_input_nc,
+        opt.output_nc,
+        opt.norm,
+        opt.init_type,
+        opt.init_gain,
+        opt.gpu_ids,
     )
     net_G_student = define_G_student(
-        opt.input_nc, opt.bias_input_nc, opt.output_nc,
-        opt.norm, opt.init_type, opt.init_gain, opt.gpu_ids
+        opt.input_nc,
+        opt.bias_input_nc,
+        opt.output_nc,
+        opt.norm,
+        opt.init_type,
+        opt.init_gain,
+        opt.gpu_ids,
     )
     with open('doc/instance_data', 'rb') as f:
         data = pickle.load(f)
     data = make_input(data)
     with torch.no_grad():
         feat_t, _ = net_G(
-            data['real_A_l'][-1], data['real_R_l'][-1], data['real_R_ab'][0],
-            data['hist'], data['ab_constant'], device
+            data['real_A_l'][-1],
+            data['real_R_l'][-1],
+            data['real_R_ab'][0],
+            data['hist'],
+            data['ab_constant'],
+            device,
         )
         feat_s, _ = net_G_student(
-            data['real_A_l'][-1], data['real_R_l'][-1], data['real_R_ab'][0],
-            data['hist'], data['ab_constant'], device
+            data['real_A_l'][-1],
+            data['real_R_l'][-1],
+            data['real_R_ab'][0],
+            data['hist'],
+            data['ab_constant'],
+            device,
         )
     opt.s_shapes = [f.shape for f in feat_s]
     opt.t_shapes = [f.shape for f in feat_t]
@@ -90,7 +115,9 @@ if __name__ == '__main__':
     epochs = 10
     best_loss = inf
     for epoch in range(epochs):
-        with tqdm(desc=f'Epoch {epoch + 1}/{epochs}', total=len(dataset) // opt.batch_size) as t:
+        with tqdm(
+            desc=f'Epoch {epoch + 1}/{epochs}', total=len(dataset) // opt.batch_size
+        ) as t:
             for i, data in enumerate(dataset, 1):
                 data = make_input(data)
 
@@ -105,9 +132,11 @@ if __name__ == '__main__':
                 model_s.optimize_parameters(feat_t, fake_imgs_t)
 
                 t.set_postfix_str(
-                    f'loss={model_s.loss_G:.2} ' +
-                    ' '.join(f'{k}={v:.2e}' for k, v in model_s.get_current_losses().items()) +
-                    f' netG_time={model_t.netG_time:.3} netG_s_time={model_s.netG_student_time:.3}'
+                    f'loss={model_s.loss_G:.2} '
+                    + ' '.join(
+                        f'{k}={v:.2e}' for k, v in model_s.get_current_losses().items()
+                    )
+                    + f' netG_time={model_t.netG_time:.3} netG_s_time={model_s.netG_student_time:.3}'
                 )
                 t.update(1)
 

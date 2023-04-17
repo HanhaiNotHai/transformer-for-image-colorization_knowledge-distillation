@@ -3,8 +3,7 @@ from typing import Any, Callable
 
 import torch
 import torch.nn.functional as F
-from torch import Tensor
-from torch import nn
+from torch import Tensor, nn
 from torch.nn import init
 from torch.nn.common_types import _size_2_t
 from torch.optim import lr_scheduler

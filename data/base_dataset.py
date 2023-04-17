@@ -3,11 +3,12 @@
 It also includes common transformation functions (e.g., get_transform, __scale_width), which can be later used in subclasses.
 """
 import random
+from abc import ABC, abstractmethod
+
 import numpy as np
 import torch.utils.data as data
-from PIL import Image
 import torchvision.transforms as transforms
-from abc import ABC, abstractmethod
+from PIL import Image
 
 
 class BaseDataset(data.Dataset, ABC):
@@ -78,7 +79,14 @@ def get_params(opt, size):
     return {'crop_pos': (x, y), 'flip': flip}
 
 
-def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, convert=True, must_crop=False):
+def get_transform(
+    opt,
+    params=None,
+    grayscale=False,
+    method=Image.BICUBIC,
+    convert=True,
+    must_crop=False,
+):
     transform_list = []
     if grayscale:
         transform_list.append(transforms.Grayscale(1))
@@ -86,22 +94,32 @@ def get_transform(opt, params=None, grayscale=False, method=Image.BICUBIC, conve
         osize = [opt.crop_size, opt.crop_size]
         transform_list.append(transforms.Resize(osize, method))
     elif 'scale_width' in opt.preprocess:
-        transform_list.append(transforms.Lambda(lambda img: __scale_width(img, opt.load_size, method)))
+        transform_list.append(
+            transforms.Lambda(lambda img: __scale_width(img, opt.load_size, method))
+        )
 
     if 'crop' in opt.preprocess:
         if params is None:
             transform_list.append(transforms.CenterCrop(opt.crop_size))
         else:
-            transform_list.append(transforms.Lambda(lambda img: __crop(img, params['crop_pos'], opt.crop_size)))
+            transform_list.append(
+                transforms.Lambda(
+                    lambda img: __crop(img, params['crop_pos'], opt.crop_size)
+                )
+            )
 
     if 'none' in opt.preprocess:
-        transform_list.append(transforms.Lambda(lambda img: __make_power_2(img, base=8, method=method)))
+        transform_list.append(
+            transforms.Lambda(lambda img: __make_power_2(img, base=8, method=method))
+        )
 
     if not opt.no_flip:
         if params is None:
             transform_list.append(transforms.RandomHorizontalFlip())
         elif params['flip']:
-            transform_list.append(transforms.Lambda(lambda img: __flip(img, params['flip'])))
+            transform_list.append(
+                transforms.Lambda(lambda img: __flip(img, params['flip']))
+            )
 
     if convert:
         transform_list += [transforms.ToTensor()]
@@ -126,12 +144,12 @@ def __make_power_2(img, base, method=Image.BICUBIC):
 def __scale_width(img, target_width, method=Image.BICUBIC):
     ow, oh = img.size
     if ow <= oh:
-        if (ow == target_width):
+        if ow == target_width:
             return img
         w = target_width
         h = int(target_width * oh / ow)
     else:
-        if (oh == target_width):
+        if oh == target_width:
             return img
         h = target_width
         w = int(target_width * ow / oh)
@@ -142,7 +160,7 @@ def __crop(img, pos, size):
     ow, oh = img.size
     x1, y1 = pos
     tw = th = size
-    if (ow > tw or oh > th):
+    if ow > tw or oh > th:
         return img.crop((x1, y1, x1 + tw, y1 + th))
     return img
 
@@ -156,8 +174,10 @@ def __flip(img, flip):
 def __print_size_warning(ow, oh, w, h):
     """Print warning information about image size(only print once)"""
     if not hasattr(__print_size_warning, 'has_printed'):
-        print("The image size needs to be a multiple of 4. "
-              "The loaded image size was (%d, %d), so it was adjusted to "
-              "(%d, %d). This adjustment will be done to all images "
-              "whose sizes are not multiples of 4" % (ow, oh, w, h))
+        print(
+            "The image size needs to be a multiple of 4. "
+            "The loaded image size was (%d, %d), so it was adjusted to "
+            "(%d, %d). This adjustment will be done to all images "
+            "whose sizes are not multiples of 4" % (ow, oh, w, h)
+        )
         __print_size_warning.has_printed = True

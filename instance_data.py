@@ -1,7 +1,7 @@
 import pickle
+
 from data import create_dataset
 from options.train_student_options import TrainStudentOption
-
 
 opt = TrainStudentOption().parse()
 opt.num_threads = 0
