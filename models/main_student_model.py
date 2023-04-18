@@ -79,14 +79,11 @@ class MainStudentModel(BaseModel):
 
     def compute_losses_G(self) -> None:
         self.loss_AFD = self.criterion_AFD(self.feat_s, self.feat_t)
-        self.loss_L1 = sum(
-            self.criterion_L1(f_s, f_t)
-            for f_s, f_t in zip(self.fake_imgs, self.fake_imgs_t)
-        )
-        self.loss_perc = sum(
-            self.criterion_perc(l, f_s, f_t)
-            for l, f_s, f_t in zip(self.real_A_l, self.fake_imgs, self.fake_imgs_t)
-        )
+        self.loss_L1 = 0
+        self.loss_perc = 0
+        for l, f_s, f_t in zip(self.real_A_l, self.fake_imgs, self.fake_imgs_t):
+            self.loss_L1 += self.criterion_L1(f_s, f_t)
+            self.loss_perc += self.criterion_perc(l, f_s, f_t)
         self.loss_hist = 0
         # self.loss_hist = self.criterion_hist()
         self.loss_G = (
