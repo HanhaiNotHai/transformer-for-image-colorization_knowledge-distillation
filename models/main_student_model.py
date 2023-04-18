@@ -42,8 +42,6 @@ class MainStudentModel(BaseModel):
             self.criterion_AFD = AFD(opt).to(self.device)
             self.criterion_L1 = torch.nn.L1Loss().to(self.device)
             self.criterion_perc = PerceptualLoss().to(self.device)
-            self.criterion_GAN = ...
-            self.criterion_sparse = ...
             self.criterion_hist = ...
 
             self.optimizer_G = torch.optim.Adam(
@@ -89,18 +87,13 @@ class MainStudentModel(BaseModel):
             self.criterion_perc(l, f_s, f_t)
             for l, f_s, f_t in zip(self.real_A_l, self.fake_imgs, self.fake_imgs_t)
         )
-        self.loss_GAN = 0
-        # self.loss_GAN = self.criterion_GAN()
-        self.loss_sparse = 0
-        # self.loss_sparse = self.criterion_sparse()
         self.loss_hist = 0
         # self.loss_hist = self.criterion_hist()
-        self.loss_G = 200 * self.loss_AFD + 0.9 * (
-            1000 * self.loss_L1
-            + 1000 * self.loss_perc
-            + 0.1 * self.loss_GAN
-            + 1 * self.loss_sparse
-            + 1 * self.loss_hist
+        self.loss_G = (
+            200 * self.loss_AFD
+            + 0.9
+            * (1000 * self.loss_L1 + 1000 * self.loss_perc + 1 * self.loss_hist)
+            / 3
         )
 
     def optimize_parameters(
