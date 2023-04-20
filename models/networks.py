@@ -98,6 +98,12 @@ def init_net(net: nn.Module, init_type='normal', init_gain=0.02, gpu_ids=[]):
     return net
 
 
+def inplace_relu(m):
+    classname = m.__class__.__name__
+    if classname.find('ReLU') != -1:
+        m.inplace = True
+
+
 def define_G(
     input_nc,
     bias_input_nc,
@@ -108,9 +114,8 @@ def define_G(
     gpu_ids=[],
 ):
     norm_layer = get_norm_layer(norm_type=norm)
-    net = ColorNet(
-        input_nc, bias_input_nc, value, norm_layer=norm_layer
-    )
+    net = ColorNet(input_nc, bias_input_nc, value, norm_layer=norm_layer)
+    net.apply(inplace_relu)
 
     return init_net(net, init_type, init_gain, gpu_ids)
 
@@ -126,6 +131,7 @@ def define_G_student(
 ) -> nn.Module | nn.DataParallel:
     norm_layer = get_norm_layer(norm)
     net = ColorStudentNet(input_nc, bias_input_nc, value, norm_layer)
+    net.apply(inplace_relu)
     return init_net(net, init_type, init_gain, gpu_ids)
 
 
