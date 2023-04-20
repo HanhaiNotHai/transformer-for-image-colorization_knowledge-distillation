@@ -213,6 +213,19 @@ class ResBlock(nn.Module):
         return out
 
 
+class ResBlock_student(nn.Module):
+    def __init__(self, dim, norm_layer, use_bias):
+        super(ResBlock_student, self).__init__()
+        self.conv_block = nn.Sequential(
+            nn.Conv2d(dim, dim, kernel_size=3, padding=1, bias=use_bias),
+            norm_layer(dim),
+        )
+
+    def forward(self, x):
+        out = x + self.conv_block(x)  # add skip connections
+        return out
+
+
 class global_network(nn.Module):
     def __init__(self, in_dim):
         super(global_network, self).__init__()
@@ -239,10 +252,8 @@ class global_network_student(nn.Module):
             *conv_block(1, in_dim, 512, kernel_size=1, padding=0)
         )
         self.model_1 = nn.Sequential(
-            *[
-                nn.Conv2d(512, 512, kernel_size=1, padding=0),
-                nn.Sigmoid(),
-            ]
+            nn.Conv2d(512, 512, kernel_size=1, padding=0),
+            nn.Sigmoid(),
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -314,22 +325,10 @@ class ref_network_align(nn.Module):
 class ref_network_align_student(nn.Module):
     def __init__(self, norm_layer) -> None:
         super(ref_network_align_student, self).__init__()
-        self.model1 = nn.Sequential(
-            *conv_block(
-                1,
-                2,
-                64,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=True,
-                norm_layer=norm_layer,
-            )
-        )
         self.model2 = nn.Sequential(
             *conv_block(
                 1,
-                64,
+                2,
                 128,
                 kernel_size=3,
                 stride=1,
@@ -370,8 +369,7 @@ class ref_network_align_student(nn.Module):
             align_color.shape[0], align_color.shape[1], H, W
         )
 
-        conv1 = self.model1(align_color_output)
-        align_color1 = self.model2(conv1)
+        align_color1 = self.model2(align_color_output)
         align_color2 = self.model3(align_color1[:, :, ::2, ::2])
         align_color3 = self.model4(align_color2[:, :, ::2, ::2])
 
@@ -434,22 +432,10 @@ class ref_network_hist(nn.Module):
 class ref_network_hist_student(nn.Module):
     def __init__(self, norm_layer) -> None:
         super(ref_network_hist_student, self).__init__()
-        self.model1 = nn.Sequential(
-            *conv_block(
-                1,
-                2,
-                64,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=True,
-                norm_layer=norm_layer,
-            )
-        )
         self.model2 = nn.Sequential(
             *conv_block(
                 1,
-                64,
+                2,
                 128,
                 kernel_size=3,
                 stride=1,
@@ -484,8 +470,7 @@ class ref_network_hist_student(nn.Module):
         )
 
     def forward(self, color: Tensor) -> tuple[Tensor]:
-        conv1 = self.model1(color)
-        align_color1 = self.model2(conv1)
+        align_color1 = self.model2(color)
         align_color2 = self.model3(align_color1[:, :, ::2, ::2])
         align_color3 = self.model4(align_color2[:, :, ::2, ::2])
         return align_color1, align_color2, align_color3
@@ -520,10 +505,8 @@ class conf_feature_align_student(nn.Module):
     def __init__(self) -> None:
         super(conf_feature_align_student, self).__init__()
         self.fc = nn.Sequential(
-            *[
-                nn.Conv1d(4096, 1, kernel_size=1, stride=1, padding=0, bias=True),
-                nn.Sigmoid(),
-            ]
+            nn.Conv1d(4096, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.Sigmoid(),
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -559,10 +542,8 @@ class conf_feature_hist_student(nn.Module):
     def __init__(self) -> None:
         super(conf_feature_hist_student, self).__init__()
         self.fc = nn.Sequential(
-            *[
-                nn.Conv1d(4096, 1, kernel_size=1, stride=1, padding=0, bias=True),
-                nn.Sigmoid(),
-            ]
+            nn.Conv1d(4096, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.Sigmoid(),
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -1263,7 +1244,7 @@ class ColorStudentNet(nn.Module):
         )
 
         # ResBlock0
-        self.resblock0_3 = ResBlock(512, norm_layer, False, use_bias)
+        self.resblock0_3 = ResBlock_student(512, norm_layer, use_bias)
 
         # Conv8
         self.model8up = nn.ConvTranspose2d(
@@ -1287,7 +1268,7 @@ class ColorStudentNet(nn.Module):
         )
 
         # ResBlock1
-        self.resblock1_3 = ResBlock(256, norm_layer, False, use_bias)
+        self.resblock1_3 = ResBlock_student(256, norm_layer, use_bias)
 
         # Conv9
         self.model9up = nn.ConvTranspose2d(
@@ -1311,7 +1292,7 @@ class ColorStudentNet(nn.Module):
         )
 
         # ResBlock2
-        self.resblock2_3 = ResBlock(128, norm_layer, False, use_bias)
+        self.resblock2_3 = ResBlock_student(128, norm_layer, use_bias)
 
         # Conv10
         self.model10up = nn.ConvTranspose2d(
