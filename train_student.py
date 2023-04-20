@@ -1,5 +1,4 @@
 import pickle
-from math import inf
 
 import numpy as np
 import torch
@@ -10,10 +9,8 @@ from data import create_dataset
 from models import create_model
 from models.colorization_model import ColorizationModel
 from models.colorization_student_model import ColorizationStudentModel
-from models.networks import define_G, define_G_student
 from options.test_options import TestOptions
 from options.train_student_options import TrainStudentOption
-from util import util
 
 if __name__ == '__main__':
     opt = TrainStudentOption().parse()
@@ -22,7 +19,7 @@ if __name__ == '__main__':
     opt.no_flip = True
     opt.continue_train = False
     opt.amp = True if opt.gpu_ids else False
-    
+
     opt_t = TestOptions().parse()
     opt_t.batch_size = opt.batch_size
 
@@ -34,51 +31,21 @@ if __name__ == '__main__':
         else torch.device('cpu')
     )
 
-    net_G = define_G(
-        opt.input_nc,
-        opt.bias_input_nc,
-        opt.output_nc,
-        opt.norm,
-        opt.init_type,
-        opt.init_gain,
-        opt.gpu_ids,
-    )
-    net_G_student = define_G_student(
-        opt.input_nc,
-        opt.bias_input_nc,
-        opt.output_nc,
-        opt.norm,
-        opt.init_type,
-        opt.init_gain,
-        opt.gpu_ids,
-    )
-    with open('doc/instance_data', 'rb') as f:
-        data = pickle.load(f)
-    ab_constant = (
+    opt.value = (
         torch.tensor(np.load('./doc/ab_constant_filter.npy'))
         .unsqueeze(0)
         .repeat(opt.batch_size, 1, 1)
+        .float()
+        .to(device)
     )
-    with torch.no_grad():
-        feat_t, _ = net_G(
-            data['A_l'][-1],
-            data['R_l'],
-            data['R_ab'][0],
-            data['hist'],
-            ab_constant,
-            device,
-        )
-        feat_s, _ = net_G_student(
-            data['A_l'][-1],
-            data['R_l'],
-            data['R_ab'][0],
-            data['hist'],
-            ab_constant,
-            device,
-        )
-    opt.s_shapes = [f.shape for f in feat_s]
-    opt.t_shapes = [f.shape for f in feat_t]
-    opt.n_t, opt.unique_t_shapes = util.unique_shape(opt.t_shapes)
+    opt_t.value = opt.value
+
+    with open('./doc/s_t_shapes', 'rb') as f:
+        s_t_shapes = pickle.load(f)
+        opt.s_shapes = s_t_shapes['s_shapes']
+        opt.t_shapes = s_t_shapes['t_shapes']
+        opt.n_t = s_t_shapes['n_t']
+        opt.unique_t_shapes = s_t_shapes['unique_t_shapes']
 
     model_t: ColorizationModel = create_model(opt_t)
     model_t.setup(opt_t)
@@ -91,10 +58,10 @@ if __name__ == '__main__':
     dataset = create_dataset(opt)
 
     epochs = 10
-    best_loss = inf
     for epoch in range(epochs):
         with tqdm(
-            desc=f'Epoch {epoch + 1}/{epochs}', total=len(dataset) // opt.batch_size
+            desc=f'Epoch {epoch + 1}/{epochs}',
+            total=len(dataset) // opt.batch_size,
         ) as t:
             for i, data in enumerate(dataset, 1):
                 with torch.no_grad():
@@ -120,4 +87,3 @@ if __name__ == '__main__':
                     model_s.save_networks('latest')
 
         model_s.save_networks('latest')
-        model_s.update_learning_rate()

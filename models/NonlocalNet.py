@@ -40,32 +40,32 @@ class VGG19_pytorch(nn.Module):
             self.pool4 = nn.AvgPool2d(kernel_size=2, stride=2)
             self.pool5 = nn.AvgPool2d(kernel_size=2, stride=2)
 
-    def forward(self, x, out_keys, preprocess=True):
+    def forward(self, x, preprocess=True):
         """
         NOTE: input tensor should range in [0,1]
         """
-        out = {}
         if preprocess:
             x = vgg_preprocess(x)
-        out["r11"] = F.relu(self.conv1_1(x))
-        out["r12"] = F.relu(self.conv1_2(out["r11"]))
-        out["p1"] = self.pool1(out["r12"])
-        out["r21"] = F.relu(self.conv2_1(out["p1"]))
-        out["r22"] = F.relu(self.conv2_2(out["r21"]))
-        out["p2"] = self.pool2(out["r22"])
-        out["r31"] = F.relu(self.conv3_1(out["p2"]))
-        out["r32"] = F.relu(self.conv3_2(out["r31"]))
-        out["r33"] = F.relu(self.conv3_3(out["r32"]))
-        out["r34"] = F.relu(self.conv3_4(out["r33"]))
-        out["p3"] = self.pool3(out["r34"])
-        out["r41"] = F.relu(self.conv4_1(out["p3"]))
-        out["r42"] = F.relu(self.conv4_2(out["r41"]))
-        out["r43"] = F.relu(self.conv4_3(out["r42"]))
-        out["r44"] = F.relu(self.conv4_4(out["r43"]))
-        out["p4"] = self.pool4(out["r44"])
-        out["r51"] = F.relu(self.conv5_1(out["p4"]))
-        out["r52"] = F.relu(self.conv5_2(out["r51"]))
-        out["r53"] = F.relu(self.conv5_3(out["r52"]))
-        out["r54"] = F.relu(self.conv5_4(out["r53"]))
-        out["p5"] = self.pool5(out["r54"])
-        return [out[key] for key in out_keys]
+        x = F.relu(self.conv1_1(x))
+        x = F.relu(self.conv1_2(x))
+        x = self.pool1(x)
+        x = F.relu(self.conv2_1(x))
+        x = F.relu(self.conv2_2(x))
+        x = self.pool2(x)
+        x = F.relu(self.conv3_1(x))
+        return x
+        x = F.relu(self.conv3_2(x))
+        x = F.relu(self.conv3_3(x))
+        x = F.relu(self.conv3_4(x))
+        x = self.pool3(x)
+        x = F.relu(self.conv4_1(x))
+        x = F.relu(self.conv4_2(x))
+        x = F.relu(self.conv4_3(x))
+        x = F.relu(self.conv4_4(x))
+        x = self.pool4(x)
+        x = F.relu(self.conv5_1(x))
+        x = F.relu(self.conv5_2(x))
+        return x
+        x = F.relu(self.conv5_3(x))
+        x = F.relu(self.conv5_4(x))
+        x = self.pool5(x)

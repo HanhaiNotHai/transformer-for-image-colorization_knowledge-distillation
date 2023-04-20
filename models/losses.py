@@ -148,11 +148,11 @@ class PerceptualLoss(nn.Module):
         I_predict_rgb = tensor_lab2rgb(
             torch.cat((uncenter_l(I_current_l), I_current_ab_predict), dim=1)
         )
-        predict_relu5_1 = self.vggnet(I_predict_rgb, ['r52'], preprocess=True)[0]
+        predict_relu5_1 = self.vggnet(I_predict_rgb, preprocess=True)
 
         I_current_rgb = tensor_lab2rgb(
             torch.cat((uncenter_l(I_current_l), I_current_ab), dim=1)
         )
-        A_relu5_1 = self.vggnet(I_current_rgb, ['r52'], preprocess=True)[0]
+        A_relu5_1 = self.vggnet(I_current_rgb, preprocess=True)
 
         return self.mse_loss(predict_relu5_1, A_relu5_1.detach())

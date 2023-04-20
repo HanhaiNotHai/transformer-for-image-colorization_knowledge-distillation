@@ -1,7 +1,5 @@
 from time import time
 
-import numpy as np
-import torch
 from torch import Tensor
 
 from util import util
@@ -23,16 +21,11 @@ class MainModel(BaseModel):
         self.netG = networks.define_G(
             opt.input_nc,
             opt.bias_input_nc,
-            opt.output_nc,
+            opt.value,
             opt.norm,
             opt.init_type,
             opt.init_gain,
             self.gpu_ids,
-        )
-        self.ab_constant = (
-            torch.tensor(np.load('./doc/ab_constant_filter.npy'))
-            .unsqueeze(0)
-            .repeat(opt.batch_size, 1, 1)
         )
 
     def set_input(self, input):
@@ -56,7 +49,6 @@ class MainModel(BaseModel):
             self.real_R_l,
             self.real_R_ab[0],
             self.hist,
-            self.ab_constant,
             self.device,
         )
         self.netG_time = time() - start_time

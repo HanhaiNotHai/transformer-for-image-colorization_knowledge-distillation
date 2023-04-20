@@ -101,14 +101,16 @@ def init_net(net: nn.Module, init_type='normal', init_gain=0.02, gpu_ids=[]):
 def define_G(
     input_nc,
     bias_input_nc,
-    output_nc,
+    value,
     norm='batch',
     init_type='normal',
     init_gain=0.02,
     gpu_ids=[],
 ):
     norm_layer = get_norm_layer(norm_type=norm)
-    net = ColorNet(input_nc, bias_input_nc, output_nc, norm_layer=norm_layer)
+    net = ColorNet(
+        input_nc, bias_input_nc, value, norm_layer=norm_layer
+    )
 
     return init_net(net, init_type, init_gain, gpu_ids)
 
@@ -116,14 +118,14 @@ def define_G(
 def define_G_student(
     input_nc: int,
     bias_input_nc: int,
-    output_nc: int,
+    value,
     norm: str = 'batch',
     init_type: str = 'normal',
     init_gain: float = 0.02,
     gpu_ids: list[int] = [],
 ) -> nn.Module | nn.DataParallel:
     norm_layer = get_norm_layer(norm)
-    net = ColorStudentNet(input_nc, bias_input_nc, output_nc, norm_layer)
+    net = ColorStudentNet(input_nc, bias_input_nc, value, norm_layer)
     return init_net(net, init_type, init_gain, gpu_ids)
 
 
@@ -575,11 +577,16 @@ class classify_network(nn.Module):
 
 
 class ColorNet(nn.Module):
-    def __init__(self, input_nc, bias_input_nc, output_nc, norm_layer=nn.BatchNorm2d):
+    def __init__(
+        self,
+        input_nc,
+        bias_input_nc,
+        value,
+        norm_layer=nn.BatchNorm2d,
+    ):
         super(ColorNet, self).__init__()
-        self.input_nc = input_nc
-        self.output_nc = output_nc
         use_bias = True
+        self.value = value
 
         model_head = [
             nn.Conv2d(input_nc, 32, kernel_size=3, stride=1, padding=1, bias=use_bias),
@@ -960,7 +967,7 @@ class ColorNet(nn.Module):
         self.model_tail_2 = nn.Sequential(*model_tail_2)
         self.model_tail_3 = nn.Sequential(*model_tail_3)
 
-    def forward(self, input, ref_input, ref_color, bias_input, ab_constant, device):
+    def forward(self, input, ref_input, ref_color, bias_input, device):
         # align branch
         in_conv = self.model_head(input)
 
@@ -1053,9 +1060,8 @@ class ColorNet(nn.Module):
         key_datasets = self.key_dataset.unsqueeze(0).to(device)
         key_datasets = key_datasets.expand(color_reg.shape[0], -1, -1)
         attn_weights = torch.bmm(color_reg.flatten(2).permute(0, 2, 1), key_datasets)
-        value = ab_constant.type_as(color_reg)
         attn_weights_softmax = self.softmax(attn_weights * 100.0)
-        conv_total_out = torch.bmm(attn_weights_softmax, value).permute(0, 2, 1)
+        conv_total_out = torch.bmm(attn_weights_softmax, self.value).permute(0, 2, 1)
         conv_total_out_re = conv_total_out.view(
             color_reg.shape[0], -1, color_reg.shape[2], color_reg.shape[3]
         )
@@ -1097,18 +1103,35 @@ class ColorNet(nn.Module):
             [
                 t,
                 r,
-                # conv_head, conv1_2, conv2_2, conv3_3, conv4_3, conv5_3,
-                # conv_global1, conv7_3, color_reg,
-                conv6_3_global,  # conv7_resblock1, conv7_resblock3, conv8_up, conv_tail_1,
-                conv8_3_global,  # conv8_resblock1, conv8_resblock3, conv9_up, conv_tail_2,
-                conv9_3_global,
-                conv9_resblock1,
-                conv9_resblock3,
+                conf_total,
+                # conv_head,
+                # conv1_2,
+                # conv2_2,
+                # conv3_3,
+                # conv4_3,
+                # conv5_3,
+                # conv_global1,
+                # conv7_3,
+                # color_reg,
+                # conv6_3_global,
+                # conv7_resblock3,
+                # conv8_up,
+                # conv_tail_1,
+                # conv8_3_global,
+                # conv8_resblock3,
+                # conv9_up,
+                # conv_tail_2,
+                # conv9_3_global,
+                # conv9_resblock3,
                 conv10_up,
                 conv10_2,
                 conv_tail_3,
             ],
-            [fake_img1, fake_img2, fake_img3],
+            [
+                fake_img1,
+                fake_img2,
+                fake_img3,
+            ],
         )
 
 
@@ -1117,15 +1140,14 @@ class ColorStudentNet(nn.Module):
         self,
         input_nc: int,
         bias_input_nc: int,
-        output_nc: int,
+        value,
         norm_layer: functools.partial[nn.BatchNorm2d]
         | functools.partial[nn.InstanceNorm2d]
         | Callable[[Any], Identity] = nn.BatchNorm2d,
     ) -> None:
         super(ColorStudentNet, self).__init__()
-        self.input_nc = input_nc
-        self.output_nc = output_nc
         use_bias = True
+        self.value = value
 
         self.model_head = nn.Sequential(
             *conv_block(
@@ -1235,11 +1257,6 @@ class ColorStudentNet(nn.Module):
         )
 
         # ResBlock0
-        self.resblock0_1 = nn.Sequential(
-            nn.Conv2d(512, 512, kernel_size=3, padding=1, bias=use_bias),
-            norm_layer(512),
-            nn.ReLU(True),
-        )
         self.resblock0_3 = ResBlock(512, norm_layer, False, use_bias)
 
         # Conv8
@@ -1250,29 +1267,20 @@ class ColorStudentNet(nn.Module):
             256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias
         )
         self.model8 = nn.Sequential(
-            *(
-                [
-                    nn.ReLU(True),
-                ]
-                + conv_block(
-                    1,
-                    256,
-                    256,
-                    kernel_size=3,
-                    stride=1,
-                    padding=1,
-                    bias=use_bias,
-                    norm_layer=norm_layer,
-                )
-            )
+            nn.ReLU(True),
+            *conv_block(
+                1,
+                256,
+                256,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=use_bias,
+                norm_layer=norm_layer,
+            ),
         )
 
         # ResBlock1
-        self.resblock1_1 = nn.Sequential(
-            nn.Conv2d(256, 256, kernel_size=3, padding=1, bias=use_bias),
-            norm_layer(256),
-            nn.ReLU(True),
-        )
         self.resblock1_3 = ResBlock(256, norm_layer, False, use_bias)
 
         # Conv9
@@ -1283,29 +1291,20 @@ class ColorStudentNet(nn.Module):
             128, 128, kernel_size=3, stride=1, padding=1, bias=use_bias
         )
         self.model9 = nn.Sequential(
-            *(
-                [
-                    nn.ReLU(True),
-                ]
-                + conv_block(
-                    1,
-                    128,
-                    128,
-                    kernel_size=3,
-                    stride=1,
-                    padding=1,
-                    bias=use_bias,
-                    norm_layer=norm_layer,
-                )
-            )
+            nn.ReLU(True),
+            *conv_block(
+                1,
+                128,
+                128,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=use_bias,
+                norm_layer=norm_layer,
+            ),
         )
 
         # ResBlock2
-        self.resblock2_1 = nn.Sequential(
-            nn.Conv2d(128, 128, kernel_size=3, padding=1, bias=use_bias),
-            norm_layer(128),
-            nn.ReLU(True),
-        )
         self.resblock2_3 = ResBlock(128, norm_layer, False, use_bias)
 
         # Conv10
@@ -1383,12 +1382,10 @@ class ColorStudentNet(nn.Module):
         ref_input: Tensor,
         ref_color: Tensor,
         bias_input: Tensor,
-        ab_constant: Tensor,
         device: torch.device,
     ) -> tuple[list[Tensor], list[Tensor]]:
         # align branch
         in_conv = self.model_head(input)
-
         in_1 = self.model1(in_conv[:, :, ::2, ::2])
         in_2: Tensor = self.model2(in_1[:, :, ::2, ::2])
         in_3 = self.model3(in_2[:, :, ::2, ::2])
@@ -1456,9 +1453,6 @@ class ColorStudentNet(nn.Module):
         conf_2_hist = conf_1_hist[:, :, ::2, ::2]
         conf_3_hist = conf_2_hist[:, :, ::2, ::2]
 
-        # hist branch
-        bias_input_ = bias_input.view(input.shape[0], -1, 1, 1)
-
         conv_head = self.model_head(input)
         conv1_2 = self.model1(conv_head[:, :, ::2, ::2])
         conv2_2 = self.model2(conv1_2[:, :, ::2, ::2])
@@ -1466,6 +1460,9 @@ class ColorStudentNet(nn.Module):
         conv4_3 = self.model4(conv3_3[:, :, ::2, ::2])
         conv5_3 = self.model5(conv4_3)
         conv6_3 = self.model6(conv5_3)
+
+        # hist branch
+        bias_input_ = bias_input.view(input.shape[0], -1, 1, 1)
 
         # hist align
         conv_global1: Tensor = self.global_network(bias_input_)
@@ -1478,9 +1475,8 @@ class ColorStudentNet(nn.Module):
         key_datasets = self.key_dataset.unsqueeze(0).to(device)
         key_datasets = key_datasets.expand(color_reg.shape[0], -1, -1)
         attn_weights = torch.bmm(color_reg.flatten(2).permute(0, 2, 1), key_datasets)
-        value = ab_constant.type_as(color_reg)
         attn_weights_softmax = self.softmax(attn_weights * 100.0)
-        conv_total_out = torch.bmm(attn_weights_softmax, value).permute(0, 2, 1)
+        conv_total_out = torch.bmm(attn_weights_softmax, self.value).permute(0, 2, 1)
         conv_total_out_re = conv_total_out.view(
             color_reg.shape[0], -1, color_reg.shape[2], color_reg.shape[3]
         )
@@ -1490,8 +1486,7 @@ class ColorStudentNet(nn.Module):
 
         # decoder1
         conv6_3_global = conv6_3 + align_3 * conf_3_align + hist_3 * conf_3_hist
-        conv7_resblock1 = self.resblock0_1(conv6_3_global)
-        conv7_resblock3 = self.resblock0_3(conv7_resblock1)
+        conv7_resblock3 = self.resblock0_3(conv6_3_global)
         conv8_up = self.model8up(conv7_resblock3) + self.model3short8(conv3_3)
         conv8_3 = self.model8(conv8_up)
         conv_tail_1 = self.model_tail_1(conv8_3)
@@ -1499,8 +1494,7 @@ class ColorStudentNet(nn.Module):
 
         # decoder2
         conv8_3_global = conv8_3 + align_2 * conf_2_align + hist_2 * conf_2_hist
-        conv8_resblock1 = self.resblock1_1(conv8_3_global)
-        conv8_resblock3 = self.resblock1_3(conv8_resblock1)
+        conv8_resblock3 = self.resblock1_3(conv8_3_global)
         conv9_up = self.model9up(conv8_resblock3) + self.model2short9(conv2_2)
         conv9_3 = self.model9(conv9_up)
         conv_tail_2 = self.model_tail_2(conv9_3)
@@ -1508,8 +1502,7 @@ class ColorStudentNet(nn.Module):
 
         # decoder3
         conv9_3_global = conv9_3 + align_1 * conf_1_align + hist_1 * conf_1_hist
-        conv9_resblock1 = self.resblock2_1(conv9_3_global)
-        conv9_resblock3 = self.resblock2_3(conv9_resblock1)
+        conv9_resblock3 = self.resblock2_3(conv9_3_global)
         conv10_up = self.model10up(conv9_resblock3) + self.model1short10(conv1_2)
         conv10_2 = self.model10(conv10_up)
         conv_tail_3 = self.model_tail_3(conv10_2)
@@ -1519,16 +1512,33 @@ class ColorStudentNet(nn.Module):
             [
                 t,
                 r,
-                # conv_head, conv1_2, conv2_2, conv3_3, conv4_3, conv5_3,
-                # conv_global1, conv7_3, color_reg,
-                conv6_3_global,  # conv7_resblock1, conv7_resblock3, conv8_up, conv_tail_1,
-                conv8_3_global,  # conv8_resblock1, conv8_resblock3, conv9_up, conv_tail_2,
-                conv9_3_global,
-                conv9_resblock1,
-                conv9_resblock3,
+                conf_total,
+                # conv_head,
+                # conv1_2,
+                # conv2_2,
+                # conv3_3,
+                # conv4_3,
+                # conv5_3,
+                # conv_global1,
+                # conv7_3,
+                # color_reg,
+                # conv6_3_global,
+                # conv7_resblock3,
+                # conv8_up,
+                # conv_tail_1,
+                # conv8_3_global,
+                # conv8_resblock3,
+                # conv9_up,
+                # conv_tail_2,
+                # conv9_3_global,
+                # conv9_resblock3,
                 conv10_up,
                 conv10_2,
                 conv_tail_3,
             ],
-            [fake_img1, fake_img2, fake_img3],
+            [
+                fake_img1,
+                fake_img2,
+                fake_img3,
+            ],
         )

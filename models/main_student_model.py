@@ -1,7 +1,6 @@
 from argparse import Namespace
 from time import time
 
-import numpy as np
 import torch
 from torch import Tensor
 from torch.cuda import amp
@@ -26,23 +25,17 @@ class MainStudentModel(BaseModel):
         self.netG_student = networks.define_G_student(
             opt.input_nc,
             opt.bias_input_nc,
-            opt.output_nc,
+            opt.value,
             opt.norm,
             opt.init_type,
             opt.init_gain,
             self.gpu_ids,
-        )
-        self.ab_constant = (
-            torch.tensor(np.load('./doc/ab_constant_filter.npy'))
-            .unsqueeze(0)
-            .repeat(opt.batch_size, 1, 1)
         )
         if self.isTrain:
             self.loss_names = ['AFD', 'L1', 'perc']
             self.criterion_AFD = AFD(opt).to(self.device)
             self.criterion_L1 = torch.nn.L1Loss().to(self.device)
             self.criterion_perc = PerceptualLoss().to(self.device)
-            self.criterion_hist = ...
 
             self.optimizer_G = torch.optim.Adam(
                 self.netG_student.parameters(), lr=2e-5, betas=(0.5, 0.99)
@@ -71,7 +64,6 @@ class MainStudentModel(BaseModel):
             self.real_R_l,
             self.real_R_ab[0],
             self.hist,
-            self.ab_constant,
             self.device,
         )
         self.netG_student_time = time() - start_time
@@ -84,13 +76,9 @@ class MainStudentModel(BaseModel):
         for l, f_s, f_t in zip(self.real_A_l, self.fake_imgs, self.fake_imgs_t):
             self.loss_L1 += self.criterion_L1(f_s, f_t)
             self.loss_perc += self.criterion_perc(l, f_s, f_t)
-        self.loss_hist = 0
-        # self.loss_hist = self.criterion_hist()
         self.loss_G = (
             200 * self.loss_AFD
-            + 0.9
-            * (1000 * self.loss_L1 + 1000 * self.loss_perc + 1 * self.loss_hist)
-            / 3
+            + 0.9 * (1000 * self.loss_L1 + 1000 * self.loss_perc) / 3
         )
 
     def optimize_parameters(

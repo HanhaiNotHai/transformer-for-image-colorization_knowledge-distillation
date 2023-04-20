@@ -43,6 +43,5 @@ if __name__ == '__main__':
             aspect_ratio=opt.aspect_ratio,
             width=opt.display_winsize,
         )
-        break
     webpage.save()
     print('Histogram Intersection: %.4f' % np.mean(scores))
