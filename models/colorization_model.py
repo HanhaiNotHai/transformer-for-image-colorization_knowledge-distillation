@@ -15,7 +15,7 @@ class ColorizationModel(MainModel):
 
     def __init__(self, opt):
         MainModel.__init__(self, opt)
-        self.visual_names = ['real_A_l_0', 'real_A_rgb', 'real_R_rgb', 'fake_R_rgb']
+        self.visual_names = ['real_A_rgb', 'real_A_l_0', 'fake_R_rgb', 'real_R_rgb']
 
     def lab2rgb(self, L, AB):
         AB2 = AB * 110.0
