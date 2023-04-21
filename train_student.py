@@ -1,4 +1,5 @@
 import pickle
+from collections import OrderedDict
 
 import numpy as np
 import torch
@@ -57,13 +58,25 @@ if __name__ == '__main__':
 
     dataset = create_dataset(opt)
 
+    with open('./doc/best_loss', 'rb') as f:
+        best_loss = pickle.load(f)
     epochs = 10
     for epoch in range(epochs):
+        postfix = OrderedDict(
+            loss=0,
+            AFD=0,
+            L1=0,
+            perc=0,
+            netG_time=0,
+            netG_s_time=0,
+        )
+
         with tqdm(
+            dataset,
             desc=f'Epoch {epoch + 1}/{epochs}',
             total=len(dataset) // opt.batch_size,
-        ) as t:
-            for i, data in enumerate(dataset, 1):
+        ) as pbar:
+            for i, data in enumerate(pbar, 1):
                 with torch.no_grad():
                     model_t.set_input(data)
                     with amp.autocast(enabled=opt.amp):
@@ -74,16 +87,34 @@ if __name__ == '__main__':
                 model_s.set_input(data)
                 model_s.optimize_parameters(feat_t, fake_imgs_t)
 
-                t.set_postfix_str(
-                    f'loss={model_s.loss_G:.2} '
-                    + ' '.join(
-                        f'{k}={v:.2e}' for k, v in model_s.get_current_losses().items()
-                    )
-                    + f' netG_time={model_t.netG_time:.3} netG_s_time={model_s.netG_student_time:.3}'
-                )
-                t.update(1)
+                postfix['loss'] = (
+                    postfix['loss'] * (i - 1) + model_s.loss_G.detach().item()
+                ) / i
+                postfix['AFD'] = (
+                    postfix['AFD'] * (i - 1) + model_s.loss_AFD.detach().item()
+                ) / i
+                postfix['L1'] = (
+                    postfix['L1'] * (i - 1) + model_s.loss_L1.detach().item()
+                ) / i
+                postfix['perc'] = (
+                    postfix['perc'] * (i - 1) + model_s.loss_perc.detach().item()
+                ) / i
+                postfix['netG_time'] = (
+                    postfix['netG_time'] * (i - 1) + model_t.netG_time
+                ) / i
+                postfix['netG_s_time'] = (
+                    postfix['netG_s_time'] * (i - 1) + model_s.netG_student_time
+                ) / i
+                pbar.set_postfix(postfix)
 
+                # with open('./doc/best_loss', 'wb') as f:
+                #     pickle.dump(postfix['loss'], f)
+                if postfix['loss'] < best_loss:
+                    best_loss = postfix['loss']
+                    with open('./doc/best_loss', 'wb') as f:
+                        pickle.dump(best_loss, f)
+                    model_s.save_networks('best')
                 if i % (len(dataset) // opt.batch_size // 10) == 0:
                     model_s.save_networks('latest')
 
-        model_s.save_networks('latest')
+        model_s.save_networks('i')

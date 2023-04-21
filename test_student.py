@@ -18,6 +18,7 @@ if __name__ == '__main__':
     opt.serial_batches = True
     opt.no_flip = True
     opt.display_id = -1
+    opt.epoch='best'
 
     device = (
         torch.device('cuda:{}'.format(opt.gpu_ids[0]))
