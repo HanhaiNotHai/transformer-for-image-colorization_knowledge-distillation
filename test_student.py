@@ -19,6 +19,20 @@ if __name__ == '__main__':
     opt.no_flip = True
     opt.display_id = -1
 
+    device = (
+        torch.device('cuda:{}'.format(opt.gpu_ids[0]))
+        if opt.gpu_ids
+        else torch.device('cpu')
+    )
+
+    opt.value = (
+        torch.tensor(np.load('./doc/ab_constant_filter.npy'))
+        .unsqueeze(0)
+        .repeat(opt.batch_size, 1, 1)
+        .float()
+        .to(device)
+    )
+
     dataset = create_dataset(opt)
     model = create_model(opt)
     model.setup(opt)
