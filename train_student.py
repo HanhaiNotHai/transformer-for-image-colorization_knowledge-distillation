@@ -1,6 +1,7 @@
 import os
 import pickle
 from collections import OrderedDict
+from math import inf
 
 import numpy as np
 import torch
@@ -59,8 +60,7 @@ if __name__ == '__main__':
 
     dataset = create_dataset(opt)
 
-    with open('./doc/best_loss', 'rb') as f:
-        best_loss = pickle.load(f)
+    best_loss = inf
     epochs = 10
     for epoch in range(epochs):
         postfix = OrderedDict(
@@ -110,12 +110,8 @@ if __name__ == '__main__':
                 ) / i
                 pbar.set_postfix(postfix)
 
-                # with open('./doc/best_loss', 'wb') as f:
-                #     pickle.dump(postfix['loss'], f)
                 if postfix['loss'] < best_loss:
                     best_loss = postfix['loss']
-                    with open('./doc/best_loss', 'wb') as f:
-                        pickle.dump(best_loss, f)
                     model_s.save_networks('best')
                 if i % (len(dataset) // opt.batch_size // 10) == 0:
                     model_s.save_networks('latest')
