@@ -1,3 +1,4 @@
+import os
 import pickle
 from collections import OrderedDict
 
@@ -63,6 +64,7 @@ if __name__ == '__main__':
     epochs = 10
     for epoch in range(epochs):
         postfix = OrderedDict(
+            best_loss=best_loss,
             loss=0,
             AFD=0,
             L1=0,
@@ -87,6 +89,7 @@ if __name__ == '__main__':
                 model_s.set_input(data)
                 model_s.optimize_parameters(feat_t, fake_imgs_t)
 
+                postfix['best_loss'] = best_loss
                 postfix['loss'] = (
                     postfix['loss'] * (i - 1) + model_s.loss_G.detach().item()
                 ) / i
@@ -117,4 +120,6 @@ if __name__ == '__main__':
                 if i % (len(dataset) // opt.batch_size // 10) == 0:
                     model_s.save_networks('latest')
 
-        model_s.save_networks('i')
+        model_s.save_networks(i)
+
+# os.system('shutdown now')
