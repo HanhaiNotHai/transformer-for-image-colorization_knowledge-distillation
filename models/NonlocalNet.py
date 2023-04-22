@@ -53,7 +53,7 @@ class VGG19_pytorch(nn.Module):
         x = F.relu(self.conv2_2(x))
         x = self.pool2(x)
         x = F.relu(self.conv3_1(x))
-        return x
+        # return x
         x = F.relu(self.conv3_2(x))
         x = F.relu(self.conv3_3(x))
         x = F.relu(self.conv3_4(x))
