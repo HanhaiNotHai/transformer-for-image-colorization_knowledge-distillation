@@ -31,6 +31,7 @@ class TestStudentOptions(BaseOptions):
         parser.add_argument(
             '--num_test', type=int, default=50, help='how many test images to run'
         )
+        parser.add_argument('--display_id', type=int, default=-1)
         # rewrite devalue values
         parser.set_defaults(model='colorization_student')
         # To avoid cropping, the load_size should be the same as crop_size
