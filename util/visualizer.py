@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+from collections import OrderedDict
 from subprocess import PIPE, Popen
 
 import numpy as np
@@ -58,6 +59,77 @@ def save_images(webpage, visuals, image_path, aspect_ratio=1.0, width=256):
         txts.append(label)
         links.append(image_name)
     webpage.add_images(ims, txts, links, width=width)
+
+
+def save_images_st(
+    webpage: html.HTML,
+    visuals_s: OrderedDict,
+    visuals_t: OrderedDict,
+    image_path: list[str],
+    aspect_ratio: float = 1.0,
+    width: int = 256,
+):
+    """Save images to the disk.
+
+    Parameters:
+        webpage (the HTML class) -- the HTML webpage class that stores these imaegs (see html.py for more details)
+        visuals (OrderedDict)    -- an ordered dictionary that stores (name, images (either tensor or numpy) ) pairs
+        image_path (str)         -- the string is used to create image paths
+        aspect_ratio (float)     -- the aspect ratio of saved images
+        width (int)              -- the images will be resized to width x width
+
+    This function will save images stored in 'visuals' to the HTML file specified by 'webpage'.
+    """
+    image_dir = webpage.get_image_dir()
+    short_path = image_path[0].split('/')
+    short_path = short_path[-2] + '_' + short_path[-1]
+    name = os.path.splitext(short_path)[0]
+
+    webpage.add_header(name)
+
+    visuals_list = [
+        OrderedDict(
+            real_R_rgb=visuals_s['real_R_rgb'],
+            real_A_rgb=visuals_s['real_A_rgb'],
+            real_A_l_0=visuals_s['real_A_l_0'],
+        ),
+        OrderedDict(
+            fake_R_rgb_1_s=visuals_s['fake_R_rgb_1'],
+            fake_R_rgb_2_s=visuals_s['fake_R_rgb_2'],
+            fake_R_rgb_3_s=visuals_s['fake_R_rgb_3'],
+        ),
+        OrderedDict(
+            fake_R_rgb_1_t=visuals_t['fake_R_rgb_1'],
+            fake_R_rgb_2_t=visuals_t['fake_R_rgb_2'],
+            fake_R_rgb_3_t=visuals_t['fake_R_rgb_3'],
+        ),
+    ]
+
+    for visuals in visuals_list:
+        ims, txts, links = [], [], []
+        for label, im_data in visuals.items():
+            im = util.tensor2im(im_data)
+            image_name = '%s_%s.png' % (name, label)
+            save_path = os.path.join(image_dir, image_name)
+            h, w, _ = im.shape
+            if aspect_ratio > 1.0:
+                im = np.array(
+                    Image.fromarray(im).resize(
+                        (h, int(w * aspect_ratio)), resample=Image.BICUBIC
+                    )
+                )
+            if aspect_ratio < 1.0:
+                im = np.array(
+                    Image.fromarray(im).resize(
+                        (int(h / aspect_ratio), w), resample=Image.BICUBIC
+                    )
+                )
+            util.save_image(im, save_path)
+
+            ims.append(image_name)
+            txts.append(label)
+            links.append(image_name)
+        webpage.add_images(ims, txts, links, width=width)
 
 
 def save_more_images(webpage, name, sources, targets, aspect_ratio=1.0, width=256):
