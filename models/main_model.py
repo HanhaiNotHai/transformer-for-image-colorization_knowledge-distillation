@@ -37,9 +37,7 @@ class MainModel(BaseModel):
             self.image_paths = input['A_paths']
             self.real_A_rgb = input['A_rgb'].squeeze(0).cpu().numpy()
             self.real_R_rgb = input['R_rgb'].squeeze(0).cpu().numpy()
-            self.real_R_histogram = util.calc_hist(
-                input['A_ab'].to(self.device), self.device
-            )
+            self.real_R_histogram = util.calc_hist(input['A_ab'].to(self.device))
 
     def forward(self):
         start_time = time()
@@ -52,6 +50,6 @@ class MainModel(BaseModel):
             self.device,
         )
         self.netG_time = time() - start_time
-        self.fake_R_histogram = util.calc_hist(self.fake_imgs[-1], self.device)
+        self.fake_R_histogram = util.calc_hist(self.fake_imgs[-1])
 
         return self.feat_t, self.fake_imgs

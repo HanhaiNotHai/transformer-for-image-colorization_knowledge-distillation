@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from PIL import Image
 from scipy import linalg
+from torch import Tensor
 
 
 def tensor2im(input_image, imtype=np.uint8):
@@ -68,31 +69,31 @@ def mkdir(path):
         os.makedirs(path)
 
 
-def calc_hist(data_ab, device):
+def calc_hist(data_ab: Tensor):
     N, C, H, W = data_ab.shape
     grid_a = (
         torch.linspace(-1, 1, 21)
         .view(1, 21, 1, 1, 1)
         .expand(N, 21, 21, H, W)
-        .to(device)
+        .to(data_ab.device)
     )
     grid_b = (
         torch.linspace(-1, 1, 21)
         .view(1, 1, 21, 1, 1)
         .expand(N, 21, 21, H, W)
-        .to(device)
+        .to(data_ab.device)
     )
     hist_a = (
         torch.max(
             0.1 - torch.abs(grid_a - data_ab[:, 0, :, :].view(N, 1, 1, H, W)),
-            torch.Tensor([0]).to(device),
+            torch.Tensor([0]).to(data_ab.device),
         )
         * 10
     )
     hist_b = (
         torch.max(
             0.1 - torch.abs(grid_b - data_ab[:, 1, :, :].view(N, 1, 1, H, W)),
-            torch.Tensor([0]).to(device),
+            torch.Tensor([0]).to(data_ab.device),
         )
         * 10
     )
