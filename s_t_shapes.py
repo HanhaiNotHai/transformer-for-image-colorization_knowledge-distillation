@@ -42,6 +42,7 @@ net_G = define_G(
     opt.input_nc,
     opt.bias_input_nc,
     opt.value,
+    opt.isTrain,
     opt.norm,
     opt.init_type,
     opt.init_gain,
@@ -51,11 +52,18 @@ net_G_student = define_G_student(
     opt.input_nc,
     opt.bias_input_nc,
     opt.value,
+    opt.isTrain,
     opt.norm,
     opt.init_type,
     opt.init_gain,
     opt.gpu_ids,
 )
+net_G.eval()
+net_G_student.eval()
+for param in net_G.parameters():
+    param.requires_grad = False
+for param in net_G_student.parameters():
+    param.requires_grad = False
 
 dataset = create_dataset(opt)
 for data in dataset:
