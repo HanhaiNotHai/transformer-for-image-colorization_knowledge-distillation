@@ -1066,8 +1066,9 @@ class ColorNet(nn.Module):
         conv7_resblock1 = self.resblock0_1(conv6_3_global)
         conv7_resblock2 = self.resblock0_2(conv7_resblock1)
         conv7_resblock3 = self.resblock0_3(conv7_resblock2)
-        conv8_up = self.model8up(conv7_resblock3) + self.model3short8(conv3_3)
-        conv8_3 = self.model8(conv8_up)
+        model8up_conv7_resblock3 = self.model8up(conv7_resblock3)
+        model3short8_conv3_3 = self.model3short8(conv3_3)
+        conv8_3 = self.model8(model8up_conv7_resblock3 + model3short8_conv3_3)
         conv_tail_1 = self.model_tail_1(conv8_3)
         fake_img1 = self.model_out1(conv_tail_1)
 
@@ -1076,8 +1077,9 @@ class ColorNet(nn.Module):
         conv8_resblock1 = self.resblock1_1(conv8_3_global)
         conv8_resblock2 = self.resblock1_2(conv8_resblock1)
         conv8_resblock3 = self.resblock1_3(conv8_resblock2)
-        conv9_up = self.model9up(conv8_resblock3) + self.model2short9(conv2_2)
-        conv9_3 = self.model9(conv9_up)
+        model9up_conv8_resblock3 = self.model9up(conv8_resblock3)
+        model2short9_conv2_2 = self.model2short9(conv2_2)
+        conv9_3 = self.model9(model9up_conv8_resblock3 + model2short9_conv2_2)
         conv_tail_2 = self.model_tail_2(conv9_3)
         fake_img2 = self.model_out2(conv_tail_2)
 
@@ -1086,8 +1088,9 @@ class ColorNet(nn.Module):
         conv9_resblock1 = self.resblock2_1(conv9_3_global)
         conv9_resblock2 = self.resblock2_2(conv9_resblock1)
         conv9_resblock3 = self.resblock2_3(conv9_resblock2)
-        conv10_up = self.model10up(conv9_resblock3) + self.model1short10(conv1_2)
-        conv10_2 = self.model10(conv10_up)
+        model10up_conv9_resblock3 = self.model10up(conv9_resblock3)
+        model1short10_conv1_2 = self.model1short10(conv1_2)
+        conv10_2 = self.model10(model10up_conv9_resblock3 + model1short10_conv1_2)
         conv_tail_3 = self.model_tail_3(conv10_2)
         fake_img3 = self.model_out3(conv_tail_3)
 
@@ -1126,15 +1129,18 @@ class ColorNet(nn.Module):
                 hist_2,
                 hist_3,
                 conv7_resblock3,
-                conv8_up,
+                model8up_conv7_resblock3,
+                model3short8_conv3_3,
                 conv8_3,
                 conv_tail_1,
                 conv8_resblock3,
-                conv9_up,
+                model9up_conv8_resblock3,
+                model2short9_conv2_2,
                 conv9_3,
                 conv_tail_2,
                 conv9_resblock3,
-                conv10_up,
+                model10up_conv9_resblock3,
+                model1short10_conv1_2,
                 conv10_2,
                 conv_tail_3,
             ],
@@ -1502,24 +1508,27 @@ class ColorStudentNet(nn.Module):
         # decoder1
         conv6_3_global = conv6_3 + align_3 * conf_3_align + hist_3 * conf_3_hist
         conv7_resblock3 = self.resblock0_3(conv6_3_global)
-        conv8_up = self.model8up(conv7_resblock3) + self.model3short8(conv3_3)
-        conv8_3 = self.model8(conv8_up)
+        model8up_conv7_resblock3 = self.model8up(conv7_resblock3)
+        model3short8_conv3_3 = self.model3short8(conv3_3)
+        conv8_3 = self.model8(model8up_conv7_resblock3 + model3short8_conv3_3)
         conv_tail_1 = self.model_tail_1(conv8_3)
         fake_img1 = self.model_out1(conv_tail_1)
 
         # decoder2
         conv8_3_global = conv8_3 + align_2 * conf_2_align + hist_2 * conf_2_hist
         conv8_resblock3 = self.resblock1_3(conv8_3_global)
-        conv9_up = self.model9up(conv8_resblock3) + self.model2short9(conv2_2)
-        conv9_3 = self.model9(conv9_up)
+        model9up_conv8_resblock3 = self.model9up(conv8_resblock3)
+        model2short9_conv2_2 = self.model2short9(conv2_2)
+        conv9_3 = self.model9(model9up_conv8_resblock3 + model2short9_conv2_2)
         conv_tail_2 = self.model_tail_2(conv9_3)
         fake_img2 = self.model_out2(conv_tail_2)
 
         # decoder3
         conv9_3_global = conv9_3 + align_1 * conf_1_align + hist_1 * conf_1_hist
         conv9_resblock3 = self.resblock2_3(conv9_3_global)
-        conv10_up = self.model10up(conv9_resblock3) + self.model1short10(conv1_2)
-        conv10_2 = self.model10(conv10_up)
+        model10up_conv9_resblock3 = self.model10up(conv9_resblock3)
+        model1short10_conv1_2 = self.model1short10(conv1_2)
+        conv10_2 = self.model10(model10up_conv9_resblock3 + model1short10_conv1_2)
         conv_tail_3 = self.model_tail_3(conv10_2)
         fake_img3 = self.model_out3(conv_tail_3)
 
@@ -1558,15 +1567,18 @@ class ColorStudentNet(nn.Module):
                 hist_2,
                 hist_3,
                 conv7_resblock3,
-                conv8_up,
+                model8up_conv7_resblock3,
+                model3short8_conv3_3,
                 conv8_3,
                 conv_tail_1,
                 conv8_resblock3,
-                conv9_up,
+                model9up_conv8_resblock3,
+                model2short9_conv2_2,
                 conv9_3,
                 conv_tail_2,
                 conv9_resblock3,
-                conv10_up,
+                model10up_conv9_resblock3,
+                model1short10_conv1_2,
                 conv10_2,
                 conv_tail_3,
             ],
