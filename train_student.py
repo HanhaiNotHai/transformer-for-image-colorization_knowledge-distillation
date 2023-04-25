@@ -56,6 +56,10 @@ if __name__ == '__main__':
     for param in model_t.netG.parameters():
         param.requires_grad = False
     model_t.isTrain = True
+    if opt.gpu_ids:
+        model_t.netG.module.isTrain = True
+    else:
+        model_t.netG.isTrain = True
 
     model_s: ColorizationStudentModel = create_model(opt)
     model_s.setup(opt)
