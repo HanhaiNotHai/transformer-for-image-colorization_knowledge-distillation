@@ -22,6 +22,7 @@ class MainModel(BaseModel):
             opt.input_nc,
             opt.bias_input_nc,
             opt.value,
+            self.isTrain,
             opt.norm,
             opt.init_type,
             opt.init_gain,
@@ -40,15 +41,24 @@ class MainModel(BaseModel):
             self.real_R_histogram = util.calc_hist(input['A_ab'].to(self.device))
 
     def forward(self):
-        start_time = time()
-        self.feat_t: list[Tensor]
-        self.feat_t, self.fake_imgs = self.netG(
-            self.real_A_l[-1],
-            self.real_R_l,
-            self.real_R_ab[0],
-            self.hist,
-        )
-        self.netG_time = time() - start_time
-        self.fake_R_histogram = util.calc_hist(self.fake_imgs[-1])
-
-        return self.feat_t, self.fake_imgs
+        if self.isTrain:
+            self.feat_t: list[Tensor]
+            start_time = time()
+            self.feat_t, self.fake_imgs = self.netG(
+                self.real_A_l[-1],
+                self.real_R_l,
+                self.real_R_ab[0],
+                self.hist,
+            )
+            self.netG_time = time() - start_time
+            return self.feat_t, self.fake_imgs
+        else:
+            start_time = time()
+            self.fake_imgs = self.netG(
+                self.real_A_l[-1],
+                self.real_R_l,
+                self.real_R_ab[0],
+                self.hist,
+            )
+            self.netG_time = time() - start_time
+            self.fake_R_histogram = util.calc_hist(self.fake_imgs[-1])

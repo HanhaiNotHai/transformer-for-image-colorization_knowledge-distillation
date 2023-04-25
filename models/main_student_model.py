@@ -26,6 +26,7 @@ class MainStudentModel(BaseModel):
             opt.input_nc,
             opt.bias_input_nc,
             opt.value,
+            self.isTrain,
             opt.norm,
             opt.init_type,
             opt.init_gain,
@@ -55,16 +56,26 @@ class MainStudentModel(BaseModel):
             self.real_R_histogram = util.calc_hist(input['A_ab'].to(self.device))
 
     def forward(self) -> None:
-        start_time = time()
-        self.feat_s: list[Tensor]
-        self.feat_s, self.fake_imgs = self.netG_student(
-            self.real_A_l[-1],
-            self.real_R_l,
-            self.real_R_ab[0],
-            self.hist,
-        )
-        self.netG_student_time = time() - start_time
-        self.fake_R_histogram = util.calc_hist(self.fake_imgs[-1])
+        if self.isTrain:
+            self.feat_s: list[Tensor]
+            start_time = time()
+            self.feat_s, self.fake_imgs = self.netG_student(
+                self.real_A_l[-1],
+                self.real_R_l,
+                self.real_R_ab[0],
+                self.hist,
+            )
+            self.netG_student_time = time() - start_time
+        else:
+            start_time = time()
+            self.fake_imgs = self.netG_student(
+                self.real_A_l[-1],
+                self.real_R_l,
+                self.real_R_ab[0],
+                self.hist,
+            )
+            self.netG_student_time = time() - start_time
+            self.fake_R_histogram = util.calc_hist(self.fake_imgs[-1])
 
     def compute_losses_G(self) -> None:
         self.loss_AFD = self.criterion_AFD(self.feat_s, self.feat_t)

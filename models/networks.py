@@ -108,13 +108,14 @@ def define_G(
     input_nc,
     bias_input_nc,
     value,
+    isTrain: bool,
     norm='batch',
     init_type='normal',
     init_gain=0.02,
     gpu_ids=[],
 ):
     norm_layer = get_norm_layer(norm_type=norm)
-    net = ColorNet(input_nc, bias_input_nc, value, norm_layer=norm_layer)
+    net = ColorNet(input_nc, bias_input_nc, value, isTrain, norm_layer=norm_layer)
     net.apply(inplace_relu)
 
     return init_net(net, init_type, init_gain, gpu_ids)
@@ -124,13 +125,14 @@ def define_G_student(
     input_nc: int,
     bias_input_nc: int,
     value,
+    isTrain: bool,
     norm: str = 'batch',
     init_type: str = 'normal',
     init_gain: float = 0.02,
     gpu_ids: list[int] = [],
 ) -> nn.Module | nn.DataParallel:
     norm_layer = get_norm_layer(norm)
-    net = ColorStudentNet(input_nc, bias_input_nc, value, norm_layer)
+    net = ColorStudentNet(input_nc, bias_input_nc, value, isTrain, norm_layer)
     net.apply(inplace_relu)
     return init_net(net, init_type, init_gain, gpu_ids)
 
@@ -569,11 +571,13 @@ class ColorNet(nn.Module):
         input_nc,
         bias_input_nc,
         value,
+        isTrain: bool,
         norm_layer=nn.BatchNorm2d,
     ):
         super(ColorNet, self).__init__()
         use_bias = True
         self.value = value
+        self.isTrain = isTrain
 
         model_head = [
             nn.Conv2d(input_nc, 32, kernel_size=3, stride=1, padding=1, bias=use_bias),
@@ -1094,8 +1098,8 @@ class ColorNet(nn.Module):
         conv_tail_3 = self.model_tail_3(conv10_2)
         fake_img3 = self.model_out3(conv_tail_3)
 
-        return (
-            [
+        if self.isTrain:
+            feat_t = [
                 in_conv,
                 in_1,
                 in_2,
@@ -1146,13 +1150,22 @@ class ColorNet(nn.Module):
                 fake_img1,
                 fake_img2,
                 fake_img3,
-            ],
-            [
+            ]
+
+            return (
+                feat_t,
+                [
+                    fake_img1,
+                    fake_img2,
+                    fake_img3,
+                ],
+            )
+        else:
+            return (
                 fake_img1,
                 fake_img2,
                 fake_img3,
-            ],
-        )
+            )
 
 
 class ColorStudentNet(nn.Module):
@@ -1161,6 +1174,7 @@ class ColorStudentNet(nn.Module):
         input_nc: int,
         bias_input_nc: int,
         value,
+        isTrain: bool,
         norm_layer: functools.partial[nn.BatchNorm2d]
         | functools.partial[nn.InstanceNorm2d]
         | Callable[[Any], Identity] = nn.BatchNorm2d,
@@ -1168,6 +1182,7 @@ class ColorStudentNet(nn.Module):
         super(ColorStudentNet, self).__init__()
         use_bias = True
         self.value = value
+        self.isTrain = isTrain
 
         self.model_head = nn.Sequential(
             *conv_block(
@@ -1535,8 +1550,8 @@ class ColorStudentNet(nn.Module):
         conv_tail_3 = self.model_tail_3(conv10_2)
         fake_img3 = self.model_out3(conv_tail_3)
 
-        return (
-            [
+        if self.isTrain:
+            feat_s = [
                 in_conv,
                 in_1,
                 in_2,
@@ -1587,10 +1602,19 @@ class ColorStudentNet(nn.Module):
                 fake_img1,
                 fake_img2,
                 fake_img3,
-            ],
-            [
+            ]
+
+            return (
+                feat_s,
+                [
+                    fake_img1,
+                    fake_img2,
+                    fake_img3,
+                ],
+            )
+        else:
+            return (
                 fake_img1,
                 fake_img2,
                 fake_img3,
-            ],
-        )
+            )
