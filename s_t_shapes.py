@@ -67,14 +67,12 @@ for data in dataset:
                 data['R_l'],
                 data['R_ab'][0],
                 data['hist'],
-                device,
             )
             feat_s, _ = net_G_student(
                 data['A_l'][-1],
                 data['R_l'],
                 data['R_ab'][0],
                 data['hist'],
-                device,
             )
     s_shapes = [f.shape for f in feat_s]
     t_shapes = [f.shape for f in feat_t]

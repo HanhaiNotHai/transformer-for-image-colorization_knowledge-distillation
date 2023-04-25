@@ -886,7 +886,12 @@ class ColorNet(nn.Module):
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear')
         self.softmax_gate = nn.Softmax(dim=1)
         self.softmax = nn.Softmax(dim=-1)
-        self.key_dataset = torch.eye(bias_input_nc)
+        self.key_dataset = (
+            torch.eye(bias_input_nc)
+            .unsqueeze(0)
+            .to(value.device)
+            .expand(value.shape[0], -1, -1)
+        )
 
         model_tail_1 = [
             nn.ConvTranspose2d(
@@ -954,7 +959,7 @@ class ColorNet(nn.Module):
         self.model_tail_2 = nn.Sequential(*model_tail_2)
         self.model_tail_3 = nn.Sequential(*model_tail_3)
 
-    def forward(self, input, ref_input, ref_color, bias_input, device):
+    def forward(self, input, ref_input, ref_color, bias_input):
         # align branch
         in_conv = self.model_head(input)
 
@@ -1044,9 +1049,9 @@ class ColorNet(nn.Module):
         color_reg = self.model_hist(conv7_3)
 
         # calculate attention matrix for histogram branch
-        key_datasets = self.key_dataset.unsqueeze(0).to(device)
-        key_datasets = key_datasets.expand(color_reg.shape[0], -1, -1)
-        attn_weights = torch.bmm(color_reg.flatten(2).permute(0, 2, 1), key_datasets)
+        attn_weights = torch.bmm(
+            color_reg.flatten(2).permute(0, 2, 1), self.key_dataset
+        )
         attn_weights_softmax = self.softmax(attn_weights * 100.0)
         conv_total_out = torch.bmm(attn_weights_softmax, self.value).permute(0, 2, 1)
         conv_total_out_re = conv_total_out.view(
@@ -1323,7 +1328,12 @@ class ColorStudentNet(nn.Module):
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear')
         self.softmax_gate = nn.Softmax(dim=1)
         self.softmax = nn.Softmax(dim=-1)
-        self.key_dataset = torch.eye(bias_input_nc)
+        self.key_dataset = (
+            torch.eye(bias_input_nc)
+            .unsqueeze(0)
+            .to(value.device)
+            .expand(value.shape[0], -1, -1)
+        )
 
         self.model_tail_1 = nn.Sequential(
             nn.ConvTranspose2d(
@@ -1369,7 +1379,6 @@ class ColorStudentNet(nn.Module):
         ref_input: Tensor,
         ref_color: Tensor,
         bias_input: Tensor,
-        device: torch.device,
     ) -> tuple[list[Tensor], list[Tensor]]:
         # align branch
         in_conv = self.model_head(input)
@@ -1459,9 +1468,9 @@ class ColorStudentNet(nn.Module):
         color_reg: Tensor = self.model_hist(conv7_3)
 
         # calculate attention matrix for histogram branch
-        key_datasets = self.key_dataset.unsqueeze(0).to(device)
-        key_datasets = key_datasets.expand(color_reg.shape[0], -1, -1)
-        attn_weights = torch.bmm(color_reg.flatten(2).permute(0, 2, 1), key_datasets)
+        attn_weights = torch.bmm(
+            color_reg.flatten(2).permute(0, 2, 1), self.key_dataset
+        )
         attn_weights_softmax = self.softmax(attn_weights * 100.0)
         conv_total_out = torch.bmm(attn_weights_softmax, self.value).permute(0, 2, 1)
         conv_total_out_re = conv_total_out.view(

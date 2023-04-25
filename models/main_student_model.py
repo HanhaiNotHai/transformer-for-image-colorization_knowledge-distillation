@@ -62,7 +62,6 @@ class MainStudentModel(BaseModel):
             self.real_R_l,
             self.real_R_ab[0],
             self.hist,
-            self.device,
         )
         self.netG_student_time = time() - start_time
         self.fake_R_histogram = util.calc_hist(self.fake_imgs[-1])

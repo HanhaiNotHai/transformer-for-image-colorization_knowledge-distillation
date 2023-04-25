@@ -37,7 +37,7 @@ if __name__ == '__main__':
     opt.value = (
         torch.tensor(np.load('./doc/ab_constant_filter.npy'))
         .unsqueeze(0)
-        .repeat(opt.batch_size, 1, 1)
+        .expand(opt.batch_size, -1, -1)
         .float()
         .to(device)
     )
