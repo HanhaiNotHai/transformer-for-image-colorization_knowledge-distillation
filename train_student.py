@@ -53,6 +53,8 @@ if __name__ == '__main__':
     model_t: ColorizationModel = create_model(opt_t)
     model_t.setup(opt_t)
     model_t.eval()
+    for param in model_t.netG.parameters():
+        param.requires_grad = False
     model_t.isTrain = True
 
     model_s: ColorizationStudentModel = create_model(opt)

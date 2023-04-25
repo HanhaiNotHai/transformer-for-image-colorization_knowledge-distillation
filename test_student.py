@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import torch
+from torch.cuda import amp
 
 from data import create_dataset
 from models import create_model
@@ -19,6 +20,7 @@ if __name__ == '__main__':
     opt.batch_size = 1
     opt.serial_batches = True
     opt.no_flip = True
+    opt.amp = True if opt.gpu_ids else False
     # opt.epoch='best'
 
     device = (
@@ -40,9 +42,12 @@ if __name__ == '__main__':
     opt.model = 'colorization'
     model_t: ColorizationModel = create_model(opt)
     model_t.setup(opt)
-    if opt.eval:
-        model_s.eval()
-        model_t.eval()
+    model_s.eval()
+    model_t.eval()
+    for param in model_s.netG_student.parameters():
+        param.requires_grad = False
+    for param in model_t.netG.parameters():
+        param.requires_grad = False
 
     web_dir = os.path.join(opt.results_dir, opt.name, f'{opt.phase}_{opt.epoch}')
     webpage = html.HTML(
@@ -57,9 +62,10 @@ if __name__ == '__main__':
         print('processing (%04d)-th image... %s' % (i, data['A_paths']))
 
         model_s.set_input(data)
-        model_s.test()
         model_t.set_input(data)
-        model_t.test()
+        with amp.autocast(enabled=opt.amp):
+            model_s.test()
+            model_t.test()
 
         netG_student_time = (netG_student_time * i + model_s.netG_student_time) / (
             i + 1
