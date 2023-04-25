@@ -1143,6 +1143,9 @@ class ColorNet(nn.Module):
                 model1short10_conv1_2,
                 conv10_2,
                 conv_tail_3,
+                fake_img1,
+                fake_img2,
+                fake_img3,
             ],
             [
                 fake_img1,
@@ -1581,6 +1584,9 @@ class ColorStudentNet(nn.Module):
                 model1short10_conv1_2,
                 conv10_2,
                 conv_tail_3,
+                fake_img1,
+                fake_img2,
+                fake_img3,
             ],
             [
                 fake_img1,
