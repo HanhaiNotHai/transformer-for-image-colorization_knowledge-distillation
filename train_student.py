@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
     best_loss = inf
     epochs = 10
-    for epoch in range(epochs):
+    for epoch in range(1, epochs + 1):
         postfix = OrderedDict(
             best_loss=best_loss,
             loss=0,
@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
         with tqdm(
             dataset,
-            desc=f'Epoch {epoch + 1}/{epochs}',
+            desc=f'Epoch {epoch}/{epochs}',
             total=len(dataset) // opt.batch_size,
         ) as pbar:
             for i, data in enumerate(pbar, 1):
@@ -122,6 +122,6 @@ if __name__ == '__main__':
                 if i % (len(dataset) // opt.batch_size // 10) == 0:
                     model_s.save_networks('latest')
 
-        model_s.save_networks(i)
+        model_s.save_networks(epoch)
 
 # os.system('shutdown now')
