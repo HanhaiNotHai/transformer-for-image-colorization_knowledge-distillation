@@ -1168,6 +1168,16 @@ class ColorNet(nn.Module):
             )
 
 
+grads = {}
+
+
+def save_grad(name):
+    def hook(grad):
+        grads[name] = grad
+
+    return hook
+
+
 class ColorStudentNet(nn.Module):
     def __init__(
         self,
@@ -1428,6 +1438,7 @@ class ColorStudentNet(nn.Module):
         in_1 = self.model1(in_conv[:, :, ::2, ::2])
         in_2: Tensor = self.model2(in_1[:, :, ::2, ::2])
         in_3 = self.model3(in_2[:, :, ::2, ::2])
+        in_3.register_hook(save_grad('in_3'))
         in_4 = self.model4(in_3[:, :, ::2, ::2])
         in_5 = self.model5(in_4)
         in_6 = self.model6(in_5)
@@ -1473,11 +1484,13 @@ class ColorStudentNet(nn.Module):
             ref_color, corr, t2.shape[2], t2.shape[3]
         )
         conf_align: Tensor = self.conf_feature_align(corr)
+        conf_align.register_hook(save_grad('conf_align'))
         conf_align = conf_align.view(conf_align.shape[0], 1, t2.shape[2], t2.shape[3])
         conf_aligns = 5.0 * conf_align
 
         # Histogram branch confidence map learning
         conf_hist: Tensor = self.conf_feature_hist(corr)
+        conf_hist.register_hook(save_grad('conf_hist'))
         conf_hist = conf_hist.view(conf_hist.shape[0], 1, t2.shape[2], t2.shape[3])
         conf_hists = 5.0 * conf_hist
 
