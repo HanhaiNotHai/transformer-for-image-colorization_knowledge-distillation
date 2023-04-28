@@ -39,7 +39,11 @@ class MainStudentModel(BaseModel):
             self.criterion_perc = PerceptualLoss().to(self.device)
 
             self.optimizer_G = torch.optim.Adam(
-                self.netG_student.parameters(), lr=2e-5, betas=(0.5, 0.99)
+                torch.nn.ModuleList(
+                    [self.netG_student, self.criterion_AFD]
+                ).parameters(),
+                lr=2e-5,
+                betas=(0.5, 0.99),
             )
 
             self.scaler = amp.GradScaler(enabled=self.opt.amp)
