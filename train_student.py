@@ -75,8 +75,6 @@ if __name__ == '__main__':
             AFD=0,
             L1=0,
             perc=0,
-            netG_time=0,
-            netG_s_time=0,
         )
 
         with tqdm(
@@ -107,12 +105,6 @@ if __name__ == '__main__':
                 ) / i
                 postfix['perc'] = (
                     postfix['perc'] * (i - 1) + model_s.loss_perc.detach().item()
-                ) / i
-                postfix['netG_time'] = (
-                    postfix['netG_time'] * (i - 1) + model_t.netG_time
-                ) / i
-                postfix['netG_s_time'] = (
-                    postfix['netG_s_time'] * (i - 1) + model_s.netG_student_time
                 ) / i
                 pbar.set_postfix(postfix)
 

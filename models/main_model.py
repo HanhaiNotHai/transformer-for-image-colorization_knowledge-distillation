@@ -43,14 +43,12 @@ class MainModel(BaseModel):
     def forward(self):
         if self.isTrain:
             self.feat_t: list[Tensor]
-            start_time = time()
             self.feat_t, self.fake_imgs = self.netG(
                 self.real_A_l[-1],
                 self.real_R_l,
                 self.real_R_ab[0],
                 self.hist,
             )
-            self.netG_time = time() - start_time
             return self.feat_t, self.fake_imgs
         else:
             start_time = time()

@@ -58,14 +58,12 @@ class MainStudentModel(BaseModel):
     def forward(self) -> None:
         if self.isTrain:
             self.feat_s: list[Tensor]
-            start_time = time()
             self.feat_s, self.fake_imgs = self.netG_student(
                 self.real_A_l[-1],
                 self.real_R_l,
                 self.real_R_ab[0],
                 self.hist,
             )
-            self.netG_student_time = time() - start_time
         else:
             start_time = time()
             self.fake_imgs = self.netG_student(
