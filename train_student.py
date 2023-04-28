@@ -124,4 +124,4 @@ if __name__ == '__main__':
 
         model_s.save_networks(epoch)
 
-# os.system('shutdown now')
+# os.system('/usr/bin/shutdown')
