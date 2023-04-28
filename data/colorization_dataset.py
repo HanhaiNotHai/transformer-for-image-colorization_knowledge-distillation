@@ -52,8 +52,8 @@ class ColorizationDataset(BaseDataset):
                     [random.choice(all_paths), random.choice(all_paths)]
                 )
         else:
-            ref_path = 'dataset/style.png'
-            for filepath, _, filenames in os.walk('dataset/test/'):
+            ref_path = './dataset/style.png'
+            for filepath, _, filenames in os.walk('./dataset/test/'):
                 for filename in filenames:
                     self.AB_paths.append([os.path.join(filepath, filename), ref_path])
 
