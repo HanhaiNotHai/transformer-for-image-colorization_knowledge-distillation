@@ -97,9 +97,9 @@ class MainStudentModel(BaseModel):
         with amp.autocast(enabled=self.opt.amp):
             self.forward()
             self.compute_losses_G()
+        self.optimizer_G.zero_grad()
         # self.loss_G.backward()
         self.scaler.scale(self.loss_G).backward()
         # self.optimizer_G.step()
         self.scaler.step(self.optimizer_G)
         self.scaler.update()
-        self.optimizer_G.zero_grad()
