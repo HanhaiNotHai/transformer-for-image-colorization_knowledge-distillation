@@ -21,7 +21,6 @@ if __name__ == '__main__':
     opt.serial_batches = True
     opt.no_flip = True
     opt.amp = True if opt.gpu_ids else False
-    # opt.epoch='best'
 
     device = (
         torch.device('cuda:{}'.format(opt.gpu_ids[0]))
@@ -36,16 +35,19 @@ if __name__ == '__main__':
         .to(device)
     )
 
-    model_s: ColorizationStudentModel = create_model(opt)
-    model_s.setup(opt)
     opt.model = 'colorization'
     model_t: ColorizationModel = create_model(opt)
     model_t.setup(opt)
-    model_s.eval()
+    opt.model = 'colorization_student'
+    model_s: ColorizationStudentModel = create_model(opt)
+    # opt.epoch = 'best'
+    model_s.setup(opt)
+
     model_t.eval()
-    for param in model_s.netG_student.parameters():
-        param.requires_grad = False
+    model_s.eval()
     for param in model_t.netG.parameters():
+        param.requires_grad = False
+    for param in model_s.netG_student.parameters():
         param.requires_grad = False
 
     web_dir = os.path.join(opt.results_dir, opt.name, f'{opt.phase}_{opt.epoch}')
