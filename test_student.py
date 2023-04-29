@@ -62,19 +62,19 @@ if __name__ == '__main__':
     for i, data in enumerate(dataset):
         print('processing (%04d)-th image... %s' % (i, data['A_paths']))
 
-        model_s.set_input(data)
         model_t.set_input(data)
+        model_s.set_input(data)
         with amp.autocast(enabled=opt.amp):
-            model_s.test()
             model_t.test()
+            model_s.test()
 
         netG_student_time = (netG_student_time * i + model_s.netG_student_time) / (
             i + 1
         )
         netG_time = (netG_time * i + model_t.netG_time) / (i + 1)
 
-        visuals_s = model_s.get_current_visuals()
         visuals_t = model_t.get_current_visuals()
+        visuals_s = model_s.get_current_visuals()
         img_path = model_s.get_image_paths()
         scores.append(model_s.compute_scores())
         save_images_st(
