@@ -87,8 +87,7 @@ class MainStudentModel(BaseModel):
             self.loss_L1 += self.criterion_L1(f_s, f_t)
             self.loss_perc += self.criterion_perc(l, f_s, f_t)
         self.loss_G = (
-            200 * self.loss_AFD
-            + 0.9 * (1000 * self.loss_L1 + 1000 * self.loss_perc) / 3
+            4000 * self.loss_AFD + (1000 * self.loss_L1 + 1000 * self.loss_perc) / 3
         )
 
     def optimize_parameters(
