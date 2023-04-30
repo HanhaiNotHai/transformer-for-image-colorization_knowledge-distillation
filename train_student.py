@@ -15,7 +15,14 @@ from models.colorization_student_model import ColorizationStudentModel
 from options.test_options import TestOptions
 from options.train_student_options import TrainStudentOption
 
-if __name__ == '__main__':
+
+def update_losses(losses, current_losses: OrderedDict, postfix):
+    for k, v in current_losses.items():
+        losses[k] = losses[k][1:] + [v]
+        postfix[k] = sum(losses[k]) / 10
+
+
+def main():
     opt = TrainStudentOption().parse()
     opt.num_threads = 20
     opt.batch_size = 2
@@ -69,12 +76,22 @@ if __name__ == '__main__':
     best_loss = inf
     epochs = 10
     for epoch in range(1, epochs + 1):
+        losses = OrderedDict(
+            G=[0] * 10,
+            AFD=[0] * 10,
+            L1=[0] * 10,
+            perc=[0] * 10,
+            hist=[0] * 10,
+            sparse=[0] * 10,
+        )
         postfix = OrderedDict(
             best_loss=best_loss,
-            loss=0,
+            G=0,
             AFD=0,
             L1=0,
             perc=0,
+            hist=0,
+            sparse=0,
         )
 
         with tqdm(
@@ -93,27 +110,20 @@ if __name__ == '__main__':
                 model_s.set_input(data)
                 model_s.optimize_parameters(feat_t, fake_imgs_t)
 
+                update_losses(losses, model_s.get_current_losses(), postfix)
                 postfix['best_loss'] = best_loss
-                postfix['loss'] = (
-                    postfix['loss'] * (i - 1) + model_s.loss_G.detach().item()
-                ) / i
-                postfix['AFD'] = (
-                    postfix['AFD'] * (i - 1) + model_s.loss_AFD.detach().item()
-                ) / i
-                postfix['L1'] = (
-                    postfix['L1'] * (i - 1) + model_s.loss_L1.detach().item()
-                ) / i
-                postfix['perc'] = (
-                    postfix['perc'] * (i - 1) + model_s.loss_perc.detach().item()
-                ) / i
                 pbar.set_postfix(postfix)
 
-                if postfix['loss'] < best_loss:
-                    best_loss = postfix['loss']
+                if (loss_G := float(model_s.loss_G)) < best_loss:
+                    best_loss = loss_G
                     model_s.save_networks('best')
                 if i % (len(dataset) // opt.batch_size // 10) == 0:
                     model_s.save_networks('latest')
 
         model_s.save_networks(epoch)
 
-# os.system('/usr/bin/shutdown')
+    # os.system('/usr/bin/shutdown')
+
+
+if __name__ == '__main__':
+    main()
