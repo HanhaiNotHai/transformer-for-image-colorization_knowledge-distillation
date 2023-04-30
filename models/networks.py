@@ -1098,6 +1098,8 @@ class ColorNet(nn.Module):
         conv_tail_3 = self.model_tail_3(conv10_2)
         fake_img3 = self.model_out3(conv_tail_3)
 
+        # breakpoint()
+
         if self.isTrain:
             return (
                 [
@@ -1563,6 +1565,8 @@ class ColorStudentNet(nn.Module):
         conv10_2 = self.model10(model10up_conv9_resblock3 + model1short10_conv1_2)
         conv_tail_3 = self.model_tail_3(conv10_2)
         fake_img3 = self.model_out3(conv_tail_3)
+        
+        # breakpoint()
 
         if self.isTrain:
             return (
