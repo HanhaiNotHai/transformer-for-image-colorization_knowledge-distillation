@@ -52,6 +52,14 @@ class MainStudentModel(BaseModel):
 
             self.scaler = amp.GradScaler(enabled=self.opt.amp)
 
+            self.rgb_from_xyz = torch.tensor(
+                [
+                    [3.24048134, -0.96925495, 0.05564664],
+                    [-1.53715152, 1.87599, -0.20404134],
+                    [-0.49853633, 0.04155593, 1.05731107],
+                ]
+            ).to(self.device)
+
     def set_input(self, input: dict[str, list[Tensor | str] | Tensor]) -> None:
         self.real_A_l = [A_l.to(self.device) for A_l in input['A_l']]
         self.real_R_l = input['R_l'].to(self.device)
@@ -130,11 +138,43 @@ class MainStudentModel(BaseModel):
         self.scaler.step(self.optimizer_G)
         self.scaler.update()
 
-    def lab2rgb_tensor(self, L: Tensor, AB: Tensor):
-        L2 = (L + 1.0) * 50.0
-        AB2 = AB * 110.0
-        Lab = torch.cat([L2, AB2], dim=1).permute(0, 2, 3, 1).data.cpu()
-        warnings.filterwarnings('ignore')
-        rgb = color.lab2rgb(Lab) * 255
-        warnings.resetwarnings()
-        return torch.tensor(rgb).permute(0, 3, 1, 2).to(L.device)
+    def lab2rgb_tensor(self, L: Tensor, ab: Tensor):
+        # Lab处理
+        L = (L + 1.0) * 50.0
+        ab = ab * 110.0
+
+        # Lab分开
+        L = L.permute(0, 2, 3, 1)[..., 0]
+        ab = ab.permute(0, 2, 3, 1)
+        a, b = ab[..., 0], ab[..., 1]
+
+        # Lab->xyz
+        y = (L + 16) / 116
+        x = (a / 500) + y
+        z = y - (b / 200)
+
+        # z处理
+        z[z.data < 0] = 0
+
+        # xyz合并
+        xyz = torch.stack([x, y, z], dim=-1)
+
+        # xyz处理
+        mask = xyz > 0.2068966
+        xyz[mask] = torch.pow(xyz[mask], 3)
+        xyz[~mask] = (xyz[~mask] - 16.0 / 116.0) / 7.787
+        xyz[..., 0] *= 0.95047
+        xyz[..., 2] *= 1.08883
+
+        # xyz->rgb
+        rgb = xyz @ self.rgb_from_xyz
+
+        # rgb处理
+        mask = rgb > 0.0031308
+        rgb[mask] = 1.055 * torch.pow(rgb[mask], 1 / 2.4).type_as(rgb) - 0.055
+        rgb[~mask] *= 12.92
+        rgb[rgb < 0] = 0
+        rgb[rgb > 1] = 1
+        rgb *= 255
+
+        return rgb.permute(0, 3, 1, 2)
