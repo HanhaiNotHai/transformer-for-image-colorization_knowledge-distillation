@@ -1371,8 +1371,10 @@ class ColorStudentNet(nn.Module):
         self.global_network = global_network_student(bias_input_nc)
 
         # conf feature
-        self.conf_feature_align = conf_feature_align_student()
-        self.conf_feature_hist = conf_feature_hist_student()
+        # self.conf_feature_align = conf_feature_align_student()
+        # self.conf_feature_hist = conf_feature_hist_student()
+        self.conf_feature_align = conf_feature_align()
+        self.conf_feature_hist = conf_feature_hist()
 
         # Conv Ref
         self.ref_network_align = ref_network_align_student(norm_layer)
@@ -1626,6 +1628,10 @@ class ColorStudentNet(nn.Module):
                     fake_img1,
                     fake_img2,
                     fake_img3,
+                ],
+                [
+                    conf_1_align,
+                    conf_1_hist,
                 ],
             )
         else:

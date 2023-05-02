@@ -76,7 +76,7 @@ for data in dataset:
                 data['R_ab'][0],
                 data['hist'],
             )
-            feat_s, _ = net_G_student(
+            feat_s, _, _ = net_G_student(
                 data['A_l'][-1],
                 data['R_l'],
                 data['R_ab'][0],

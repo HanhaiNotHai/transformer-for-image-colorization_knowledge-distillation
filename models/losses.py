@@ -1,10 +1,12 @@
+from math import isnan
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision.models import VGG19_Weights, vgg19
 
-from models.NonlocalNet import VGG19_pytorch
-from util.util import tensor_lab2rgb, uncenter_l
+from util import util
 
 
 class nn_bn_relu(nn.Module):
@@ -134,25 +136,43 @@ class Sample(nn.Module):
         return g_s
 
 
+class MyVGG(nn.Module):
+    def __init__(self, features):
+        super(MyVGG, self).__init__()
+        self.features = features
+
+    def forward(self, x):
+        return self.features(x)
+
+
 class PerceptualLoss(nn.Module):
     def __init__(self) -> None:
         super(PerceptualLoss, self).__init__()
-        self.vggnet = VGG19_pytorch()
-        self.vggnet.load_state_dict(torch.load('checkpoints/vgg19_conv.pth'))
+        self.vggnet = MyVGG(vgg19(weights=VGG19_Weights.IMAGENET1K_V1).features[:12])
         self.vggnet.eval()
         for param in self.vggnet.parameters():
             param.requires_grad = False
         self.mse_loss = nn.MSELoss()
 
-    def forward(self, I_current_l, I_current_ab_predict, I_current_ab):
-        I_predict_rgb = tensor_lab2rgb(
-            torch.cat((uncenter_l(I_current_l), I_current_ab_predict), dim=1)
-        )
-        predict_relu5_1 = self.vggnet(I_predict_rgb, preprocess=True)
+    def forward(self, rgb_s, rgb_t):
+        f_s = self.vggnet(rgb_s)
+        f_t = self.vggnet(rgb_t)
+        return self.mse_loss(f_s, f_t) / f_s.shape[1] / f_s.shape[2] / f_s.shape[3]
 
-        I_current_rgb = tensor_lab2rgb(
-            torch.cat((uncenter_l(I_current_l), I_current_ab), dim=1)
-        )
-        A_relu5_1 = self.vggnet(I_current_rgb, preprocess=True)
 
-        return self.mse_loss(predict_relu5_1, A_relu5_1.detach())
+class SparseLoss(nn.Module):
+    def __init__(self) -> None:
+        super(SparseLoss, self).__init__()
+
+    def forward(self, confs):
+        return sum(torch.mean(-conf * torch.log(conf)) for conf in confs)
+
+
+class HistLoss(nn.Module):
+    def __init__(self) -> None:
+        super(HistLoss, self).__init__()
+
+    def forward(self, fake_img_s, fake_img_t):
+        TH = util.calc_hist(fake_img_s)
+        RH = util.calc_hist(fake_img_t)
+        return 2 * sum(l for l in ((TH - RH) ** 2 / (TH + RH)).view(-1) if not isnan(l))
