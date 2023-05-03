@@ -1,9 +1,7 @@
-import warnings
 from argparse import Namespace
 from time import time
 
 import torch
-from skimage import color
 from torch import Tensor
 from torch.cuda import amp
 
@@ -38,7 +36,7 @@ class MainStudentModel(BaseModel):
             self.loss_names = ['G', 'AFD', 'L1', 'perc', 'hist', 'sparse']
             self.criterion_AFD = AFD(opt).to(self.device)
             self.criterion_L1 = torch.nn.L1Loss().to(self.device)
-            self.criterion_perc = PerceptualLoss().to(self.device)
+            self.criterion_perc = PerceptualLoss(self.device).to(self.device)
             self.criterion_hist = HistLoss().to(self.device)
             self.criterion_sparse = SparseLoss().to(self.device)
 
@@ -51,14 +49,6 @@ class MainStudentModel(BaseModel):
             )
 
             self.scaler = amp.GradScaler(enabled=self.opt.amp)
-
-            self.rgb_from_xyz = torch.tensor(
-                [
-                    [3.24048134, -0.96925495, 0.05564664],
-                    [-1.53715152, 1.87599, -0.20404134],
-                    [-0.49853633, 0.04155593, 1.05731107],
-                ]
-            ).to(self.device)
 
     def set_input(self, input: dict[str, list[Tensor | str] | Tensor]) -> None:
         self.real_A_l = [A_l.to(self.device) for A_l in input['A_l']]
@@ -100,14 +90,11 @@ class MainStudentModel(BaseModel):
         self.loss_sparse = 0
 
         self.loss_AFD = self.criterion_AFD(self.feat_s, self.feat_t)
-        for l, fake_img_s, fake_img_t in zip(
+        for L, fake_img_s, fake_img_t in zip(
             self.real_A_l, self.fake_imgs, self.fake_imgs_t
         ):
             self.loss_L1 += self.criterion_L1(fake_img_s, fake_img_t)
-            self.loss_perc += self.criterion_perc(
-                self.lab2rgb_tensor(l, fake_img_s),
-                self.lab2rgb_tensor(l, fake_img_t),
-            )
+            self.loss_perc += self.criterion_perc(L, fake_img_s, fake_img_t)
             self.loss_hist += self.criterion_hist(fake_img_s, fake_img_t)
         self.loss_sparse = self.criterion_sparse(self.confs)
 
@@ -137,44 +124,3 @@ class MainStudentModel(BaseModel):
         # self.optimizer_G.step()
         self.scaler.step(self.optimizer_G)
         self.scaler.update()
-
-    def lab2rgb_tensor(self, L: Tensor, ab: Tensor):
-        # Lab处理
-        L = (L + 1.0) * 50.0
-        ab = ab * 110.0
-
-        # Lab分开
-        L = L.permute(0, 2, 3, 1)[..., 0]
-        ab = ab.permute(0, 2, 3, 1)
-        a, b = ab[..., 0], ab[..., 1]
-
-        # Lab->xyz
-        y = (L + 16) / 116
-        x = (a / 500) + y
-        z = y - (b / 200)
-
-        # z处理
-        z[z.data < 0] = 0
-
-        # xyz合并
-        xyz = torch.stack([x, y, z], dim=-1)
-
-        # xyz处理
-        mask = xyz > 0.2068966
-        xyz[mask] = torch.pow(xyz[mask], 3)
-        xyz[~mask] = (xyz[~mask] - 16.0 / 116.0) / 7.787
-        xyz[..., 0] *= 0.95047
-        xyz[..., 2] *= 1.08883
-
-        # xyz->rgb
-        rgb = xyz @ self.rgb_from_xyz
-
-        # rgb处理
-        mask = rgb > 0.0031308
-        rgb[mask] = 1.055 * torch.pow(rgb[mask], 1 / 2.4).type_as(rgb) - 0.055
-        rgb[~mask] *= 12.92
-        rgb[rgb < 0] = 0
-        rgb[rgb > 1] = 1
-        rgb *= 255
-
-        return rgb.permute(0, 3, 1, 2)
