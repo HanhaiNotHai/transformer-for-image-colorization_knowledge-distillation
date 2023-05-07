@@ -16,12 +16,6 @@ from options.test_options import TestOptions
 from options.train_student_options import TrainStudentOption
 
 
-def update_losses(losses, current_losses: OrderedDict, postfix):
-    for k, v in current_losses.items():
-        losses[k] = losses[k][1:] + [v]
-        postfix[k] = sum(losses[k]) / 10
-
-
 def main():
     opt = TrainStudentOption().parse()
     opt.num_threads = 20
@@ -110,7 +104,9 @@ def main():
                 model_s.set_input(data)
                 model_s.optimize_parameters(feat_t, fake_imgs_t)
 
-                update_losses(losses, model_s.get_current_losses(), postfix)
+                for k, v in model_s.get_current_losses().items():
+                    losses[k] = losses[k][1:] + [v]
+                    postfix[k] = sum(losses[k]) / 10
                 postfix['best_loss'] = best_loss
                 pbar.set_postfix(postfix)
 
