@@ -1,6 +1,7 @@
 from time import time
 
 from torch import Tensor
+import torch
 
 from util import util
 
@@ -60,3 +61,12 @@ class MainModel(BaseModel):
             )
             self.netG_time = time() - start_time
             self.fake_R_histogram = util.calc_hist(self.fake_imgs[-1])
+
+    def save_onnx(self):
+        torch.onnx.export(
+            self.netG,
+            (self.real_A_l[-1], self.real_R_l, self.real_R_ab[0], self.hist),
+            'netG.onnx',
+            input_names=['input', 'ref_input', 'ref_color', 'bias_input'],
+            output_names=['fake_img1', 'fake_img2', 'fake_img3'],
+        )

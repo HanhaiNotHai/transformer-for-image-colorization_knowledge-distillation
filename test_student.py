@@ -64,6 +64,8 @@ if __name__ == '__main__':
 
         model_t.set_input(data)
         model_s.set_input(data)
+        # model_t.save_onnx()
+        # model_s.save_onnx()
         with amp.autocast(enabled=opt.amp):
             model_t.test()
             model_s.test()
