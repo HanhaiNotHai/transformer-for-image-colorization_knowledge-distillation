@@ -132,12 +132,12 @@ class MainStudentModel(BaseModel):
             if isinstance(self.netG_student, torch.nn.DataParallel)
             else self.netG_student,
             (self.real_A_l[-1], self.real_R_l, self.real_R_ab[0], self.hist),
-            'netG_student.onnx',
+            './checkpoints/netG_student.onnx',
             input_names=['input', 'ref_input', 'ref_color', 'bias_input'],
             output_names=['fake_img1', 'fake_img2', 'fake_img3'],
         )
         np.savez(
-            'input.npz',
+            './checkpoints/input.npz',
             input=self.real_R_l.cpu(),
             ref_input=self.real_A_l[-1].cpu(),
             ref_color=self.real_R_ab[0].cpu(),

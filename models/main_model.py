@@ -66,7 +66,7 @@ class MainModel(BaseModel):
         torch.onnx.export(
             self.netG,
             (self.real_A_l[-1], self.real_R_l, self.real_R_ab[0], self.hist),
-            'netG.onnx',
+            './checkpoints/netG.onnx',
             input_names=['input', 'ref_input', 'ref_color', 'bias_input'],
             output_names=['fake_img1', 'fake_img2', 'fake_img3'],
         )
