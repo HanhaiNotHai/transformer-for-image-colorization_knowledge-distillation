@@ -225,6 +225,6 @@ class HistLoss(nn.Module):
         super(HistLoss, self).__init__()
 
     def forward(self, fake_img_s, fake_img_t):
-        TH = util.calc_hist(fake_img_s)
-        RH = util.calc_hist(fake_img_t)
-        return 2 * sum(l for l in ((TH - RH) ** 2 / (TH + RH)).view(-1) if not isnan(l))
+        TH = util.calc_hist(fake_img_s) + 1e-16
+        RH = util.calc_hist(fake_img_t) + 1e-16
+        return 2 * torch.sum((TH - RH) ** 2 / (TH + RH))
