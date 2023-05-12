@@ -116,7 +116,10 @@ def main():
                 if i % (len(dataset) // opt.batch_size // 10) == 0:
                     model_s.save_networks('latest')
 
-        model_s.save_networks(epoch)
+        if epoch % (epochs // 10) == 0:
+            model_s.save_networks(
+                f'{opt.epoch}_{epoch}' if opt.continue_train else f'{epoch}'
+            )
 
     # os.system('/usr/bin/shutdown')
 
