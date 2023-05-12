@@ -52,4 +52,4 @@ class ColorizationStudentModel(MainStudentModel):
     def compute_scores(self) -> list[float]:
         hr = self.real_R_histogram.data.cpu().float().numpy().flatten()
         hg = self.fake_R_histogram.data.cpu().float().numpy().flatten()
-        return cv2.compareHist(hr, hg, cv2.HISTCMP_INTERSECT)
+        return cv2.compareHist(hr, hg, cv2.HISTCMP_CHISQR_ALT)
