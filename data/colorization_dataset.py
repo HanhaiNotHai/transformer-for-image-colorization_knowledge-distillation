@@ -40,22 +40,10 @@ class ColorizationDataset(BaseDataset):
         BaseDataset.__init__(self, opt)
 
         self.AB_paths = []
-        if opt.isTrain:
-            self.dir = os.path.join(opt.dataroot, opt.phase)
-            all_paths = []
-            for filepath, _, filenames in os.walk(self.dir):
-                for filename in filenames:
-                    all_paths.append(os.path.join(filepath, filename))
-
-            for _ in range(10**4):
-                self.AB_paths.append(
-                    [random.choice(all_paths), random.choice(all_paths)]
-                )
-        else:
-            ref_path = './dataset/style.png'
-            for filepath, _, filenames in os.walk('./dataset/test/'):
-                for filename in filenames:
-                    self.AB_paths.append([os.path.join(filepath, filename), ref_path])
+        ref_path = './dataset/style.png'
+        for filepath, _, filenames in os.walk(os.path.join(opt.dataroot, opt.phase)):
+            for filename in filenames:
+                self.AB_paths.append([os.path.join(filepath, filename), ref_path])
 
         self.AB_paths.sort()
         self.weights_index = np.load('./doc/weight_index.npy')
