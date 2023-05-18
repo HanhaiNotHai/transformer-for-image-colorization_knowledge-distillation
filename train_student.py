@@ -6,7 +6,7 @@ from math import inf
 import numpy as np
 import torch
 from torch.cuda import amp
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 from data import create_dataset
 from models import create_model
@@ -69,7 +69,7 @@ def main():
 
     best_loss = inf
     epochs = 10
-    for epoch in range(1, epochs + 1):
+    for epoch in trange(1, epochs + 1):
         losses = OrderedDict(
             G=[0] * 10,
             AFD=[0] * 10,
