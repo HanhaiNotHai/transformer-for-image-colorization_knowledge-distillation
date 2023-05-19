@@ -250,19 +250,13 @@ class global_network(nn.Module):
 class global_network_student(nn.Module):
     def __init__(self, in_dim: int) -> None:
         super(global_network_student, self).__init__()
-        self.model = nn.Sequential(
-            *conv_block(1, in_dim, 512, kernel_size=1, padding=0)
-        )
         self.model_1 = nn.Sequential(
-            nn.Conv2d(512, 512, kernel_size=1, padding=0),
+            nn.Conv2d(in_dim, 512, kernel_size=1, padding=0),
             nn.Sigmoid(),
         )
 
     def forward(self, x: Tensor) -> Tensor:
-        x = self.model(x)
-        x1 = self.model_1(x)
-
-        return x1
+        return self.model_1(x)
 
 
 class ref_network_align(nn.Module):
