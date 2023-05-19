@@ -1124,7 +1124,6 @@ class ColorNet(nn.Module):
                     conv5_3,
                     conv6_3,
                     conv_global1,
-                    conv7_3,
                     color_reg,
                     hist_1,
                     hist_2,
@@ -1273,18 +1272,6 @@ class ColorStudentNet(nn.Module):
                 stride=1,
                 padding=2,
                 bias=use_bias,
-                norm_layer=norm_layer,
-            )
-        )
-        self.model7 = nn.Sequential(
-            *conv_block(
-                1,
-                512,
-                512,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=True,
                 norm_layer=norm_layer,
             )
         )
@@ -1513,8 +1500,7 @@ class ColorStudentNet(nn.Module):
         conv_global1: Tensor = self.global_network(bias_input_)
         conv_global1_repeat = conv_global1.expand_as(conv6_3)
         conv_global1_add = conv6_3 * conv_global1_repeat
-        conv7_3 = self.model7(conv_global1_add)
-        color_reg: Tensor = self.model_hist(conv7_3)
+        color_reg: Tensor = self.model_hist(conv_global1_add)
 
         # calculate attention matrix for histogram branch
         attn_weights = torch.bmm(
@@ -1588,7 +1574,6 @@ class ColorStudentNet(nn.Module):
                     conv5_3,
                     conv6_3,
                     conv_global1,
-                    conv7_3,
                     color_reg,
                     hist_1,
                     hist_2,
