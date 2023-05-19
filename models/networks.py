@@ -1295,11 +1295,7 @@ class ColorStudentNet(nn.Module):
             )
         )
 
-        self.model_hist = nn.Sequential(
-            nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, bias=True),
-            nn.ReLU(True),
-            nn.Conv2d(256, 198, kernel_size=1, stride=1, padding=0, bias=True),
-        )
+        self.model_hist = nn.ConvTranspose2d(512, 198, kernel_size=4, stride=2, padding=1, bias=True)
 
         # ResBlock0
         self.resblock0_3 = ResBlock_student(512, norm_layer, use_bias)
