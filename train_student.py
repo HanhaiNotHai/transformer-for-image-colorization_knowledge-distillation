@@ -93,7 +93,7 @@ def main():
             desc=f'Epoch {epoch}/{epochs}',
             total=len(dataset) // opt.batch_size,
         ) as pbar:
-            for i, data in enumerate(pbar, 1):
+            for data in pbar:
                 with torch.no_grad():
                     model_t.set_input(data)
                     with amp.autocast(enabled=opt.amp):
@@ -113,8 +113,8 @@ def main():
                 if (loss_G := float(model_s.loss_G)) < best_loss:
                     best_loss = loss_G
                     model_s.save_networks('best')
-                if i % (len(dataset) // opt.batch_size // 10) == 0:
-                    model_s.save_networks('latest')
+
+        model_s.save_networks('latest')
 
         if epoch % (epochs // 10) == 0:
             model_s.save_networks(
