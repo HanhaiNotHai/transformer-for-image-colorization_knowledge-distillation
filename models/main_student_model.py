@@ -36,6 +36,7 @@ class MainStudentModel(BaseModel):
         if self.isTrain:
             self.loss_names = ['G', 'AFD', 'L1', 'perc', 'hist', 'sparse']
             self.criterion_AFD = AFD(opt).to(self.device)
+            # self.mse_loss = torch.nn.MSELoss().to(self.device)
             self.criterion_L1 = torch.nn.L1Loss().to(self.device)
             self.criterion_perc = PerceptualLoss(self.device).to(self.device)
             self.criterion_hist = HistLoss().to(self.device)
@@ -45,6 +46,7 @@ class MainStudentModel(BaseModel):
                 torch.nn.ModuleList(
                     [self.netG_student, self.criterion_AFD]
                 ).parameters(),
+                # self.netG_student.parameters(),
                 lr=2e-5,
                 betas=(0.5, 0.99),
             )
@@ -91,6 +93,9 @@ class MainStudentModel(BaseModel):
         self.loss_sparse = 0
 
         self.loss_AFD = self.criterion_AFD(self.feat_s, self.feat_t)
+        # self.loss_AFD = sum(
+        #     self.mse_loss(f_s, f_t) for f_s, f_t in zip(self.feat_s, self.feat_t)
+        # )
         for L, fake_img_s, fake_img_t in zip(
             self.real_A_l, self.fake_imgs, self.fake_imgs_t
         ):
