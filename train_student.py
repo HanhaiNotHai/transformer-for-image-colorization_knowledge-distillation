@@ -18,9 +18,12 @@ from options.train_student_options import TrainStudentOption
 
 def main():
     opt = TrainStudentOption().parse()
+    ####################
     opt.num_threads = 20
+    ##################
     opt.batch_size = 2
     opt.no_flip = True
+    #########################
     opt.continue_train = False
     opt.amp = True if opt.gpu_ids else False
 
@@ -63,11 +66,14 @@ def main():
         model_t.netG.isTrain = True
 
     model_s: ColorizationStudentModel = create_model(opt)
+    #################
+    # opt.epoch = '500'
     model_s.setup(opt)
 
     dataset = create_dataset(opt)
 
     best_loss = inf
+    ############
     epochs = 10
     for epoch in trange(1, epochs + 1):
         losses = OrderedDict(
@@ -121,6 +127,7 @@ def main():
                 f'{opt.epoch}_{epoch}' if opt.continue_train else f'{epoch}'
             )
 
+    ################################
     # os.system('/usr/bin/shutdown')
 
 
