@@ -1,0 +1,1 @@
+python -u test_student_teacher.py --gpu_ids 0
