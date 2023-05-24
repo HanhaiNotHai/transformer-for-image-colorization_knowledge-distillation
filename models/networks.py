@@ -1256,7 +1256,9 @@ class ColorStudentNet(nn.Module):
             )
         )
 
-        self.model_hist = nn.ConvTranspose2d(512, 198, kernel_size=4, stride=2, padding=1, bias=True)
+        self.model_hist = nn.ConvTranspose2d(
+            512, 198, kernel_size=4, stride=2, padding=1, bias=True
+        )
 
         # ResBlock0
         self.resblock0_3 = ResBlock_student(512, norm_layer, use_bias)
@@ -1521,7 +1523,7 @@ class ColorStudentNet(nn.Module):
         conv10_2 = self.model10(model10up_conv9_resblock3 + model1short10_conv1_2)
         conv_tail_3 = self.model_tail_3(conv10_2)
         fake_img3 = self.model_out3(conv_tail_3)
-        
+
         # breakpoint()
 
         if self.isTrain:

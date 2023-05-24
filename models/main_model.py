@@ -1,7 +1,7 @@
 from time import time
 
-from torch import Tensor
 import torch
+from torch import Tensor
 
 from util import util
 

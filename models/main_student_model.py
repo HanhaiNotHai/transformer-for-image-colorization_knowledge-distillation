@@ -1,7 +1,7 @@
 from argparse import Namespace
 from time import time
-import numpy as np
 
+import numpy as np
 import torch
 from torch import Tensor
 from torch.cuda import amp
