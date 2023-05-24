@@ -1105,7 +1105,6 @@ class ColorNet(nn.Module):
                     conv3_3,
                     conv4_3,
                     conv5_3,
-                    conv_global1,
                     color_reg,
                     conv6_3_global,
                     conv7_resblock3,
@@ -1126,6 +1125,11 @@ class ColorNet(nn.Module):
                     # fake_img1,
                     # fake_img2,
                     # fake_img3,
+                ],
+                [
+                    conf_align,
+                    conf_hist,
+                    conv_global1,
                 ],
                 [
                     fake_img1,
@@ -1537,7 +1541,6 @@ class ColorStudentNet(nn.Module):
                     conv3_3,
                     conv4_3,
                     conv5_3,
-                    conv_global1,
                     color_reg,
                     conv6_3_global,
                     conv7_resblock3,
@@ -1558,6 +1561,11 @@ class ColorStudentNet(nn.Module):
                     # fake_img1,
                     # fake_img2,
                     # fake_img3,
+                ],
+                [
+                    conf_align,
+                    conf_hist,
+                    conv_global1,
                 ],
                 [
                     fake_img1,
