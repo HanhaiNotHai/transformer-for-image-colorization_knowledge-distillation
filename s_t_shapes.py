@@ -70,18 +70,18 @@ for data in dataset:
     data = make_input(data)
     with torch.no_grad():
         with amp.autocast(enabled=opt.amp):
-            feat_t, _ = net_G(
+            feat_t = net_G(
                 data['A_l'][-1],
                 data['R_l'],
                 data['R_ab'][0],
                 data['hist'],
-            )
-            feat_s, _, _ = net_G_student(
+            )[0]
+            feat_s = net_G_student(
                 data['A_l'][-1],
                 data['R_l'],
                 data['R_ab'][0],
                 data['hist'],
-            )
+            )[0]
     s_shapes = [f.shape for f in feat_s]
     t_shapes = [f.shape for f in feat_t]
     n_t, unique_t_shapes = util.unique_shape(t_shapes)
