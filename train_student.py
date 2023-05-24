@@ -74,7 +74,7 @@ def main():
 
     best_loss = inf
     ############
-    epochs = 10
+    epochs = 100
     for epoch in trange(1, epochs + 1):
         losses = OrderedDict(
             G=[0] * 10,
