@@ -1,7 +1,6 @@
 import os
 import pickle
 from collections import OrderedDict
-from math import inf
 
 import numpy as np
 import torch
