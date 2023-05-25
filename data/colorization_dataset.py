@@ -1,5 +1,4 @@
 import os.path
-import random
 from collections import Counter
 
 import cv2
