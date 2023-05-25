@@ -21,7 +21,7 @@ def main():
     ####################
     opt.num_threads = 20
     ##################
-    opt.batch_size = 2
+    opt.batch_size = 4
     opt.no_flip = True
     #########################
     opt.continue_train = False
