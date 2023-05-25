@@ -72,7 +72,6 @@ def main():
 
     dataset = create_dataset(opt)
 
-    best_loss = inf
     ############
     epochs = 100
     for epoch in trange(1, epochs + 1):
@@ -86,7 +85,6 @@ def main():
             sparse=[0] * 10,
         )
         postfix = OrderedDict(
-            best_loss=best_loss,
             G=0,
             AFD=0,
             mse=0,
@@ -116,12 +114,7 @@ def main():
                 for k, v in model_s.get_current_losses().items():
                     losses[k] = losses[k][1:] + [v]
                     postfix[k] = sum(losses[k]) / 10
-                postfix['best_loss'] = best_loss
                 pbar.set_postfix(postfix)
-
-                if (loss_G := float(model_s.loss_G)) < best_loss:
-                    best_loss = loss_G
-                    model_s.save_networks('best')
 
         model_s.save_networks('latest')
 
