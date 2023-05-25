@@ -73,7 +73,7 @@ def main():
     dataset = create_dataset(opt)
 
     ############
-    epochs = 100
+    epochs = 500
     for epoch in trange(1, epochs + 1):
         losses = OrderedDict(
             G=[0] * 10,
