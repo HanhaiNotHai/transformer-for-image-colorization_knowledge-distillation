@@ -132,8 +132,8 @@ class MainStudentModel(BaseModel):
         ):
             self.loss_L1 += self.criterion_L1(fake_img_s, fake_img_t)
             self.loss_perc += self.criterion_perc(L, fake_img_s, fake_img_t)
-            self.loss_hist += self.criterion_hist(fake_img_s, fake_img_t)
-        self.loss_sparse = self.criterion_sparse(self.confs)
+        #     self.loss_hist += self.criterion_hist(fake_img_s, fake_img_t)
+        # self.loss_sparse = self.criterion_sparse(self.confs)
 
         self.loss_L1 /= 3
         self.loss_perc /= 3
