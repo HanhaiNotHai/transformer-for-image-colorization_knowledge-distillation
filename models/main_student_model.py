@@ -34,10 +34,9 @@ class MainStudentModel(BaseModel):
             self.gpu_ids,
         )
         if self.isTrain:
-            self.loss_names = ['G', 'AFD', 'mse', 'L1', 'perc', 'hist', 'sparse']
+            self.loss_names = ['G', 'AFD', 'L1', 'perc', 'hist', 'sparse']
             ###############################################
             self.criterion_AFD = AFD(opt).to(self.device)
-            self.mse_loss = torch.nn.MSELoss().to(self.device)
             self.criterion_L1 = torch.nn.L1Loss().to(self.device)
             self.criterion_perc = PerceptualLoss(self.device).to(self.device)
             self.criterion_hist = HistLoss().to(self.device)
@@ -90,12 +89,8 @@ class MainStudentModel(BaseModel):
 
     def forward(self) -> None:
         if self.isTrain:
-            (
-                self.feat_s_AFD,
-                self.feat_s_mse,
-                self.fake_imgs,
-                self.confs,
-            ) = self.netG_student(
+            self.feat_s: list[Tensor]
+            self.feat_s, self.fake_imgs, self.confs = self.netG_student(
                 self.real_A_l[-1],
                 self.real_R_l,
                 self.real_R_ab[0],
@@ -115,18 +110,13 @@ class MainStudentModel(BaseModel):
     def compute_losses_G(self) -> None:
         self.loss_G = 0
         self.loss_AFD = 0
-        self.loss_mse = 0
         self.loss_L1 = 0
         self.loss_perc = 0
         self.loss_hist = 0
         self.loss_sparse = 0
 
         ##############################################################
-        self.loss_AFD = self.criterion_AFD(self.feat_s_AFD, self.feat_t_AFD)
-        self.loss_mse = sum(
-            self.mse_loss(f_s, f_t)
-            for f_s, f_t in zip(self.feat_s_mse, self.feat_t_mse)
-        )
+        self.loss_AFD = self.criterion_AFD(self.feat_s, self.feat_t)
         for L, fake_img_s, fake_img_t in zip(
             self.real_A_l, self.fake_imgs, self.fake_imgs_t
         ):
@@ -141,7 +131,6 @@ class MainStudentModel(BaseModel):
 
         self.loss_G = (
             4000 * self.loss_AFD
-            + self.loss_mse
             + 200 * self.loss_L1
             + 500 * self.loss_perc
             + 10 * self.loss_hist
@@ -149,13 +138,9 @@ class MainStudentModel(BaseModel):
         )
 
     def optimize_parameters(
-        self,
-        feat_t_AFD: list[Tensor],
-        feat_t_mse: list[Tensor],
-        fake_imgs_t: list[Tensor],
+        self, feat_t: list[Tensor], fake_imgs_t: list[Tensor]
     ) -> None:
-        self.feat_t_AFD = feat_t_AFD
-        self.feat_t_mse = feat_t_mse
+        self.feat_t = feat_t
         self.fake_imgs_t = fake_imgs_t
         with amp.autocast(enabled=self.opt.amp):
             self.forward()

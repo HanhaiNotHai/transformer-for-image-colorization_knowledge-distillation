@@ -77,7 +77,6 @@ def main():
         losses = OrderedDict(
             G=[0] * 10,
             AFD=[0] * 10,
-            mse=[0] * 10,
             L1=[0] * 10,
             perc=[0] * 10,
             hist=[0] * 10,
@@ -86,7 +85,6 @@ def main():
         postfix = OrderedDict(
             G=0,
             AFD=0,
-            mse=0,
             L1=0,
             perc=0,
             hist=0,
@@ -102,13 +100,12 @@ def main():
                 with torch.no_grad():
                     model_t.set_input(data)
                     with amp.autocast(enabled=opt.amp):
-                        feat_t_AFD, feat_t_mse, fake_imgs_t = model_t.forward()
-                    feat_t_AFD = [f.detach() for f in feat_t_AFD]
-                    feat_t_mse = [f.detach() for f in feat_t_mse]
+                        feat_t, fake_imgs_t = model_t.forward()
+                    feat_t = [f.detach() for f in feat_t]
                     fake_imgs_t = [f.detach() for f in fake_imgs_t]
 
                 model_s.set_input(data)
-                model_s.optimize_parameters(feat_t_AFD, feat_t_mse, fake_imgs_t)
+                model_s.optimize_parameters(feat_t, fake_imgs_t)
 
                 for k, v in model_s.get_current_losses().items():
                     losses[k] = losses[k][1:] + [v]
