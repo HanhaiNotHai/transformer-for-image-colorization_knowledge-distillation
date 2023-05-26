@@ -42,33 +42,11 @@ class MainStudentModel(BaseModel):
             self.criterion_hist = HistLoss().to(self.device)
             self.criterion_sparse = SparseLoss().to(self.device)
 
-            def mse_params():
-                return torch.nn.ModuleList(
-                    [
-                        self.netG_student.module.conf_feature_align
-                        if self.gpu_ids
-                        else self.netG_student.conf_feature_align,
-                        self.netG_student.module.conf_feature_hist
-                        if self.gpu_ids
-                        else self.netG_student.conf_feature_hist,
-                        self.netG_student.module.global_network
-                        if self.gpu_ids
-                        else self.netG_student.global_network,
-                    ]
-                ).parameters()
-
-            feature_params = filter(
-                lambda p: id(p) not in map(id, mse_params()),
-                self.netG_student.parameters(),
-            )
-
             ####################################
             self.optimizer_G = torch.optim.Adam(
-                [
-                    {'params': feature_params},
-                    {'params': self.criterion_AFD.parameters()},
-                    {'params': mse_params(), 'lr': 5e-5},
-                ],
+                torch.nn.ModuleList(
+                    [self.netG_student, self.criterion_AFD]
+                ).parameters(),
                 # self.netG_student.parameters(),
                 lr=1e-5,
                 betas=(0.5, 0.99),
