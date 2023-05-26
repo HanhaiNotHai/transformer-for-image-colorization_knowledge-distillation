@@ -1,12 +1,14 @@
 import argparse
 import os
-from util import util
+
 import torch
-import models
+
 import data
+import models
+from util import util
 
 
-class BaseOptions():
+class BaseOptions:
     """This class defines options used during both training and test time.
 
     It also implements several helper functions such as parsing, printing, and saving the options.
@@ -20,37 +22,147 @@ class BaseOptions():
     def initialize(self, parser):
         """Define the common options that are used in both training and test."""
         # basic parameters
-        parser.add_argument('--dataroot', type=str, default='./dataset/',
-                            help='path to images (should have subfolders trainA, trainB, valA, valB, etc)')
-        parser.add_argument('--name', type=str, default='imagenet', help='name of the experiment. It decides where to store samples and models')
-        parser.add_argument('--gpu_ids', type=str, default='-1', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
-        parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints/', help='models are saved here')
+        parser.add_argument(
+            '--dataroot',
+            type=str,
+            default='./dataset/',
+            help='path to images (should have subfolders trainA, trainB, valA, valB, etc)',
+        )
+        parser.add_argument(
+            '--name',
+            type=str,
+            default='imagenet',
+            help='name of the experiment. It decides where to store samples and models',
+        )
+        parser.add_argument(
+            '--gpu_ids',
+            type=str,
+            default='-1',
+            help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU',
+        )
+        parser.add_argument(
+            '--checkpoints_dir',
+            type=str,
+            default='./checkpoints/',
+            help='models are saved here',
+        )
         # model parameters
-        parser.add_argument('--input_nc', type=int, default=1, help='# of input image channels: 3 for RGB and 1 for grayscale')
-        parser.add_argument('--bias_input_nc', type=int, default=198, help='# of reference image histogram bins')
-        parser.add_argument('--output_nc', type=int, default=2, help='# of output image channels: 3 for RGB and 1 for grayscale')
-        parser.add_argument('--ndf', type=int, default=64, help='# of discrim filters in the first conv layer')
-        parser.add_argument('--norm', type=str, default='instance', help='instance normalization or batch normalization [instance | batch | none]')
-        parser.add_argument('--init_type', type=str, default='normal', help='network initialization [normal | xavier | kaiming | orthogonal]')
-        parser.add_argument('--init_gain', type=float, default=0.02, help='scaling factor for normal, xavier and orthogonal.')
+        parser.add_argument(
+            '--input_nc',
+            type=int,
+            default=1,
+            help='# of input image channels: 3 for RGB and 1 for grayscale',
+        )
+        parser.add_argument(
+            '--bias_input_nc',
+            type=int,
+            default=198,
+            help='# of reference image histogram bins',
+        )
+        parser.add_argument(
+            '--output_nc',
+            type=int,
+            default=2,
+            help='# of output image channels: 3 for RGB and 1 for grayscale',
+        )
+        parser.add_argument(
+            '--ndf',
+            type=int,
+            default=64,
+            help='# of discrim filters in the first conv layer',
+        )
+        parser.add_argument(
+            '--norm',
+            type=str,
+            default='instance',
+            help='instance normalization or batch normalization [instance | batch | none]',
+        )
+        parser.add_argument(
+            '--init_type',
+            type=str,
+            default='normal',
+            help='network initialization [normal | xavier | kaiming | orthogonal]',
+        )
+        parser.add_argument(
+            '--init_gain',
+            type=float,
+            default=0.02,
+            help='scaling factor for normal, xavier and orthogonal.',
+        )
         # dataset parameters
-        parser.add_argument('--serial_batches', action='store_true', help='if true, takes images in order to make batches, otherwise takes them randomly')
-        parser.add_argument('--num_threads', default=4, type=int, help='# threads for loading data')
-        parser.add_argument('--batch_size', type=int, default=8, help='input batch size')
-        parser.add_argument('--load_size', type=int, default=288, help='scale images to this size')
-        parser.add_argument('--crop_size', type=int, default=256, help='then crop to this size')
-        parser.add_argument('--max_dataset_size', type=int, default=float("inf"), help='Maximum number of samples allowed per dataset. If the dataset directory contains more than max_dataset_size, only a subset is loaded.')
-        parser.add_argument('--preprocess', type=str, default='none', help='scaling and cropping of images at load time [resize_and_crop | crop | scale_width | scale_width_and_crop | none]')
-        parser.add_argument('--no_flip', action='store_true', help='if specified, do not flip the images for data augmentation')
-        parser.add_argument('--display_winsize', type=int, default=256, help='display window size for both visdom and HTML')
-        parser.add_argument('--targetImage_path', type=str, default='./imgs/target.JPEG')
-        parser.add_argument('--referenceImage_path', type=str, default='./imgs/reference.JPEG')
+        parser.add_argument(
+            '--serial_batches',
+            action='store_true',
+            help='if true, takes images in order to make batches, otherwise takes them randomly',
+        )
+        parser.add_argument(
+            '--num_threads', default=4, type=int, help='# threads for loading data'
+        )
+        parser.add_argument(
+            '--batch_size', type=int, default=8, help='input batch size'
+        )
+        parser.add_argument(
+            '--load_size', type=int, default=288, help='scale images to this size'
+        )
+        parser.add_argument(
+            '--crop_size', type=int, default=256, help='then crop to this size'
+        )
+        parser.add_argument(
+            '--max_dataset_size',
+            type=int,
+            default=float("inf"),
+            help='Maximum number of samples allowed per dataset. If the dataset directory contains more than max_dataset_size, only a subset is loaded.',
+        )
+        parser.add_argument(
+            '--preprocess',
+            type=str,
+            default='none',
+            help='scaling and cropping of images at load time [resize_and_crop | crop | scale_width | scale_width_and_crop | none]',
+        )
+        parser.add_argument(
+            '--no_flip',
+            action='store_true',
+            help='if specified, do not flip the images for data augmentation',
+        )
+        parser.add_argument(
+            '--display_winsize',
+            type=int,
+            default=256,
+            help='display window size for both visdom and HTML',
+        )
+        parser.add_argument(
+            '--targetImage_path', type=str, default='./imgs/target.JPEG'
+        )
+        parser.add_argument(
+            '--referenceImage_path', type=str, default='./imgs/reference.JPEG'
+        )
         # additional parameters
-        parser.add_argument('--use_D', action='store_true', help='whether to use discriminator or not')
-        parser.add_argument('--epoch', type=str, default='latest', help='which epoch to load? set to latest to use latest cached model')
-        parser.add_argument('--load_iter', type=int, default='0', help='which iteration to load? if load_iter > 0, the code will load models by iter_[load_iter]; otherwise, the code will load models by [epoch]')
-        parser.add_argument('--verbose', action='store_true', help='if specified, print more debugging information')
-        parser.add_argument('--suffix', default='', type=str, help='customized suffix: opt.name = opt.name + suffix: e.g., {model}_{netG}_size{load_size}')
+        parser.add_argument(
+            '--use_D', action='store_true', help='whether to use discriminator or not'
+        )
+        parser.add_argument(
+            '--epoch',
+            type=str,
+            default='latest',
+            help='which epoch to load? set to latest to use latest cached model',
+        )
+        parser.add_argument(
+            '--load_iter',
+            type=int,
+            default='0',
+            help='which iteration to load? if load_iter > 0, the code will load models by iter_[load_iter]; otherwise, the code will load models by [epoch]',
+        )
+        parser.add_argument(
+            '--verbose',
+            action='store_true',
+            help='if specified, print more debugging information',
+        )
+        parser.add_argument(
+            '--suffix',
+            default='',
+            type=str,
+            help='customized suffix: opt.name = opt.name + suffix: e.g., {model}_{netG}_size{load_size}',
+        )
         self.initialized = True
         return parser
 
@@ -61,7 +173,9 @@ class BaseOptions():
         in model and dataset classes.
         """
         if not self.initialized:  # check if it has been initialized
-            parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+            parser = argparse.ArgumentParser(
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            )
             parser = self.initialize(parser)
 
         # get the basic options
@@ -110,7 +224,7 @@ class BaseOptions():
     def parse(self):
         """Parse our options, create checkpoints directory suffix, and set up gpu device."""
         opt = self.gather_options()
-        opt.isTrain = self.isTrain   # train or test
+        opt.isTrain = self.isTrain  # train or test
 
         # process opt.suffix
         if opt.suffix:
@@ -121,12 +235,9 @@ class BaseOptions():
 
         # set gpu ids
         str_ids = opt.gpu_ids.split(',')
-        opt.gpu_ids = []
-        for str_id in str_ids:
-            id = int(str_id)
-            if id >= 0:
-                opt.gpu_ids.append(id)
-        if len(opt.gpu_ids) > 0:
+        opt.gpu_ids = [id for id in map(int, str_ids) if id >= 0]
+        if opt.gpu_ids:
+            assert torch.cuda.is_available()
             torch.cuda.set_device(opt.gpu_ids[0])
         opt.A = 2 * 110.0 / 10.0 + 1
 

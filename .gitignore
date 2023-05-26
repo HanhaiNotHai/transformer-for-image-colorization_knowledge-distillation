@@ -1,3 +1,11 @@
+.idea/
+checkpoints/
+dataset/
+results/
+transformer-for-image-colorization_knowledge-distillation/
+code.*
+hello.*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
